@@ -32,9 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (t) {
       getMyProfile()
         .then((p) => setProfile(p))
-        .catch(() => {
-          logout();
-          setToken(null);
+        .catch((err) => {
+          console.error("Failed to load profile. Backend might be sleeping or unreachable:", err);
+          // Note: apiFetch already clears the token automatically if it receives a 401/403.
+          // We DO NOT arbitrarily call logout() here, otherwise a 502 timeout would log the user out!
         })
         .finally(() => setLoading(false));
     } else {
