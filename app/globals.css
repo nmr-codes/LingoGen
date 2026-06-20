@@ -5,44 +5,44 @@
    ============================================================ */
 :root {
   --bg: #000000;
-  --bg-card: #080808;
-  --bg-card-2: #121212;
-  --bg-hover: #1a1a1a;
+  --bg-card: #000000;
+  --bg-card-2: #0a0a0a;
+  --bg-hover: #111111;
   
-  --border: #222222;
-  --border-hover: #444444;
+  --border: #333333;
+  --border-hover: #dddddd;
 
-  --primary: #ffffff;
-  --primary-dark: #cccccc;
+  --primary: #dddddd;
+  --primary-dark: #aaaaaa;
   --primary-light: #ffffff;
   
-  --accent: #aaaaaa;
-  --accent-2: #666666;
+  --accent: #888888;
+  --accent-2: #555555;
   
-  --danger: #ff4a4a;
-  --success: #ffffff;
+  --danger: #cc0000;
+  --success: #dddddd;
 
-  --text: #ffffff;
-  --text-muted: #888888;
-  --text-dim: #555555;
+  --text: #dddddd;
+  --text-muted: #777777;
+  --text-dim: #444444;
 
-  --gradient: linear-gradient(135deg, #ffffff 0%, #aaaaaa 100%);
-  --gradient-card: linear-gradient(135deg, #111111 0%, #050505 100%);
-  --gradient-glow: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+  --gradient: none;
+  --gradient-card: none;
+  --gradient-glow: none;
 
-  --shadow-sm: 0 4px 12px rgba(255, 255, 255, 0.02);
-  --shadow-md: 0 8px 32px rgba(255, 255, 255, 0.04);
-  --shadow-lg: 0 16px 64px rgba(255, 255, 255, 0.06);
-  --shadow-glow: 0 0 40px rgba(255, 255, 255, 0.1);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-glow: none;
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-full: 0px;
 
   --font: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --transition: 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  --transition: 0.2s ease-in-out;
 }
 
 /* ============================================================
@@ -127,7 +127,7 @@ input, textarea { font-family: var(--font); }
 .avatar-menu { position: relative; }
 .avatar-btn {
   width: 40px; height: 40px;
-  border-radius: var(--radius-full);
+  border-radius: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   transition: var(--transition);
@@ -135,12 +135,13 @@ input, textarea { font-family: var(--font); }
 }
 .avatar-btn:hover {
   border-color: var(--primary);
-  box-shadow: var(--shadow-glow);
+  background: var(--primary);
 }
+.avatar-btn:hover .avatar-placeholder { color: var(--bg); }
 .avatar-img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); }
 .avatar-placeholder {
   width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-  font-weight: 500; color: var(--primary); font-size: 16px;
+  font-weight: 500; color: var(--primary); font-size: 16px; transition: var(--transition);
 }
 
 .dropdown-menu {
@@ -189,13 +190,13 @@ input, textarea { font-family: var(--font); }
 .btn-primary {
   background: var(--primary);
   color: #000000;
+  border: 1px solid var(--primary);
 }
 .btn-primary:hover {
-  background: #e0e0e0;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.15);
+  background: #000000;
+  color: var(--primary);
 }
-.btn-primary:active { transform: translateY(0); }
+.btn-primary:active { transform: scale(0.98); }
 
 .btn-secondary {
   background: var(--bg-card-2);
@@ -265,7 +266,7 @@ input, textarea { font-family: var(--font); }
   display: inline-flex; align-items: center; gap: 8px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-full);
+  border-radius: 0;
   padding: 8px 20px;
   font-size: 12px; font-weight: 500; letter-spacing: 1px;
   color: var(--text-muted); text-transform: uppercase;
@@ -360,7 +361,7 @@ input, textarea { font-family: var(--font); }
 }
 
 .step-num {
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 40px; height: 40px; border-radius: 0;
   border: 1px solid var(--text-muted);
   background: var(--bg); color: var(--text);
   display: flex; align-items: center; justify-content: center;
@@ -484,7 +485,7 @@ input, textarea { font-family: var(--font); }
 .chat-active { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .chat-header { padding: 20px 32px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 20px; }
 .stranger-avatar {
-  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
+  width: 40px; height: 40px; border-radius: 0; border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center; font-size: 16px; filter: grayscale(100%); flex-shrink: 0;
 }
 .stranger-info { flex: 1; min-width: 0; }
@@ -506,9 +507,9 @@ input, textarea { font-family: var(--font); }
 .stranger .message-bubble-group { align-items: flex-start; }
 .message-sender-label { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 
-.message-bubble { padding: 8px 14px; border-radius: 14px; font-weight: 400; font-size: 14px; line-height: 1.5; }
-.bubble-own { background: var(--text); color: var(--bg); border-bottom-right-radius: 4px; }
-.bubble-stranger { background: var(--bg-card-2); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+.message-bubble { padding: 10px 16px; border-radius: 0; font-weight: 400; font-size: 14px; line-height: 1.5; }
+.bubble-own { background: var(--primary); color: #000; border: 1px solid var(--primary); }
+.bubble-stranger { background: transparent; border: 1px solid var(--border); color: var(--text); }
 
 .message-time { font-size: 10px; opacity: 0.5; display: block; margin-top: 8px; }
 .message-reaction { font-size: 14px; margin-top: 6px; filter: grayscale(100%); opacity: 0.8; }
@@ -542,7 +543,7 @@ input, textarea { font-family: var(--font); }
 .profile-page { min-height: 100vh; padding: 140px 24px 60px; }
 .profile-container { max-width: 600px; margin: 0 auto; }
 .profile-header { display: flex; align-items: center; gap: 32px; margin-bottom: 48px; }
-.profile-avatar-lg { width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 1px solid var(--border); }
+.profile-avatar-lg { width: 100px; height: 100px; border-radius: 0; overflow: hidden; border: 1px solid var(--border); }
 .profile-avatar-lg img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); }
 .profile-name { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; margin-bottom: 4px; }
 .profile-meta { color: var(--text-muted); font-size: 13px; font-weight: 300; letter-spacing: 0.5px; }
