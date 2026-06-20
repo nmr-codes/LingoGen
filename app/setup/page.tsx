@@ -9,7 +9,7 @@ const TOTAL_STEPS = 4;
 const LANGUAGES = [
   "None", "English", "Spanish", "French", "Mandarin", "Arabic", "Hindi", 
   "Portuguese", "Russian", "Japanese", "German", "Korean", "Italian",
-  "Turkish", "Vietnamese", "Polish", "Dutch", "Thai", "Swedish", "Greek", "Other"
+  "Turkish", "Vietnamese", "Polish", "Dutch", "Thai", "Swedish", "Greek", "Uzbek", "Other"
 ];
 
 export default function SetupPage() {

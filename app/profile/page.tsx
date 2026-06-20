@@ -5,6 +5,12 @@ import { useAuth } from "../../components/AuthProvider";
 import InterestSelector from "../../components/InterestSelector";
 import { updateProfile } from "../../lib/api";
 
+const LANGUAGES = [
+  "None", "English", "Spanish", "French", "Mandarin", "Arabic", "Hindi", 
+  "Portuguese", "Russian", "Japanese", "German", "Korean", "Italian",
+  "Turkish", "Vietnamese", "Polish", "Dutch", "Thai", "Swedish", "Greek", "Uzbek", "Other"
+];
+
 export default function ProfilePage() {
   const { profile, loading, setProfile } = useAuth();
   const router = useRouter();
@@ -17,6 +23,8 @@ export default function ProfilePage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [bio, setBio] = useState("");
   const [lookingFor, setLookingFor] = useState("");
+  const [nativeLanguage, setNativeLanguage] = useState("None");
+  const [learningLanguage, setLearningLanguage] = useState("None");
 
   useEffect(() => {
     if (!loading && !profile) router.push("/auth");
@@ -30,6 +38,8 @@ export default function ProfilePage() {
       setInterests(profile.interests || []);
       setBio(profile.bio || "");
       setLookingFor(profile.looking_for || "");
+      setNativeLanguage(profile.native_language || "None");
+      setLearningLanguage(profile.learning_language || "None");
     }
   }, [profile]);
 
@@ -43,6 +53,8 @@ export default function ProfilePage() {
         interests,
         bio: bio.trim(),
         looking_for: lookingFor,
+        native_language: nativeLanguage !== "None" ? nativeLanguage : undefined,
+        learning_language: learningLanguage !== "None" ? learningLanguage : undefined,
       });
       setProfile(updated);
       setEditing(false);
@@ -138,6 +150,18 @@ export default function ProfilePage() {
                 <label className="form-label">Bio</label>
                 <textarea className="form-input" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={300} rows={3} style={{ resize: "vertical" }} />
               </div>
+              <div className="form-group">
+                <label className="form-label">Native Language</label>
+                <select className="form-input" value={nativeLanguage} onChange={(e) => setNativeLanguage(e.target.value)} style={{ background: "var(--bg-card)", color: "var(--text)" }}>
+                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Learning Language</label>
+                <select className="form-input" value={learningLanguage} onChange={(e) => setLearningLanguage(e.target.value)} style={{ background: "var(--bg-card)", color: "var(--text)" }}>
+                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
             </>
           ) : (
             <>
@@ -148,7 +172,13 @@ export default function ProfilePage() {
                 </div>
               )}
               <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Details</p>
-              <p style={{ color: "var(--text)" }}>{gender || "—"} · Age {age || "—"}</p>
+              <p style={{ color: "var(--text)", marginBottom: 12 }}>{gender || "—"} · Age {age || "—"}</p>
+
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 600 }}>Languages</p>
+              <p style={{ color: "var(--text)" }}>
+                Native: {nativeLanguage !== "None" ? nativeLanguage : "—"} <br />
+                Learning: {learningLanguage !== "None" ? learningLanguage : "—"}
+              </p>
             </>
           )}
         </div>
