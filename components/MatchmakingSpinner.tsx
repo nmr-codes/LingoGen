@@ -17,6 +17,9 @@ export default function MatchmakingSpinner({ queueCount, onCancel }: Props) {
     return () => clearInterval(timer);
   }, []);
 
+  const formatDuration = (s: number) =>
+    `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
   return (
     <div className="matchmaking-container">
       <div className="matchmaking-card">
@@ -27,8 +30,8 @@ export default function MatchmakingSpinner({ queueCount, onCancel }: Props) {
           <div className="ring-center">🔍</div>
         </div>
         <h2 className="matchmaking-title">Finding your match...</h2>
-        <div style={{ color: "var(--primary)", fontSize: "18px", fontWeight: "bold", marginBottom: "12px" }}>
-          {seconds}s
+        <div style={{ color: "var(--primary)", fontSize: "18px", fontWeight: "bold", marginBottom: "12px", fontFamily: "monospace" }}>
+          {formatDuration(seconds)}
         </div>
         <p className="matchmaking-sub">
           Looking for someone with similar interests
