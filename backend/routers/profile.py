@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models.user import UserProfile, UserProfileUpdate
 from services.auth_service import decode_access_token, get_user_profile
 from services.db_service import db_service
+from services.redis_service import redis_service
 
 router = APIRouter()
 bearer = HTTPBearer()
@@ -52,3 +53,9 @@ async def get_online_count():
     count = await redis_service.online_count()
     queue = await redis_service.queue_count()
     return {"online": count, "searching": queue}
+
+@router.get("/debug")
+async def get_debug_info(uid: str):
+    sid = await redis_service.get_user_session(uid)
+    sdata = await redis_service.get_session(sid) if sid else None
+    return {"uid": uid, "sid": sid, "sdata": sdata}

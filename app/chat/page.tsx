@@ -143,10 +143,14 @@ export default function ChatPage() {
       setQueueCount(e.queue_count as number);
     });
 
+    const offError = socket.on("error", (e) => {
+      alert("Error: " + String(e.message));
+    });
+
     return () => {
       offConnected(); offQueue(); offMatched(); offMsg();
       offTyping(); offReaction(); offLeft(); offEnded();
-      offCancelled(); offSearching();
+      offCancelled(); offSearching(); offError();
     };
   }, [token, profile]);
 

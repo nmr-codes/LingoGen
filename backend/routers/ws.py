@@ -165,9 +165,16 @@ async def websocket_endpoint(
 
             # ── Chat Message ──────────────────────────────
             elif msg_type == "message":
-                await _ensure_session()
+                try:
+                    await _ensure_session()
+                except Exception as e:
+                    await send_json(websocket, {"type": "error", "message": f"Ensure session exception: {str(e)}"})
+                    continue
+
                 if not current_session_id or not partner_uid:
-                    await send_json(websocket, {"type": "error", "message": "Not in a session"})
+                    sid = await redis_service.get_user_session(uid)
+                    sdata = await redis_service.get_session(sid) if sid else None
+                    await send_json(websocket, {"type": "error", "message": f"Debug: uid={uid}, sid={sid}, sdata={sdata}"})
                     continue
 
                 text = str(data.get("text", "")).strip()
