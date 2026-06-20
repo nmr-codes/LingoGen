@@ -506,9 +506,9 @@ input, textarea { font-family: var(--font); }
 .stranger .message-bubble-group { align-items: flex-start; }
 .message-sender-label { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
 
-.message-bubble { padding: 14px 20px; border-radius: var(--radius-md); font-weight: 300; font-size: 14px; line-height: 1.6; }
-.bubble-own { background: var(--text); color: var(--bg); border-bottom-right-radius: 2px; }
-.bubble-stranger { background: transparent; border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 2px; }
+.message-bubble { padding: 8px 14px; border-radius: 14px; font-weight: 400; font-size: 14px; line-height: 1.5; }
+.bubble-own { background: var(--text); color: var(--bg); border-bottom-right-radius: 4px; }
+.bubble-stranger { background: var(--bg-card-2); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
 
 .message-time { font-size: 10px; opacity: 0.5; display: block; margin-top: 8px; }
 .message-reaction { font-size: 14px; margin-top: 6px; filter: grayscale(100%); opacity: 0.8; }

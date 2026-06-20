@@ -88,6 +88,16 @@ async def websocket_endpoint(
 
     heartbeat_task = asyncio.create_task(heartbeat())
 
+    async def _ensure_session():
+        nonlocal current_session_id, partner_uid
+        if not current_session_id or not partner_uid:
+            sid = await redis_service.get_user_session(uid)
+            if sid:
+                sdata = await redis_service.get_session(sid)
+                if sdata:
+                    current_session_id = sid
+                    partner_uid = sdata["uid2"] if sdata["uid1"] == uid else sdata["uid1"]
+
     try:
         while True:
             raw = await websocket.receive_text()
@@ -155,6 +165,7 @@ async def websocket_endpoint(
 
             # ── Chat Message ──────────────────────────────
             elif msg_type == "message":
+                await _ensure_session()
                 if not current_session_id or not partner_uid:
                     await send_json(websocket, {"type": "error", "message": "Not in a session"})
                     continue
@@ -189,6 +200,7 @@ async def websocket_endpoint(
 
             # ── Typing ────────────────────────────────────
             elif msg_type == "typing":
+                await _ensure_session()
                 if not current_session_id or not partner_uid:
                     continue
                 is_typing: bool = bool(data.get("is_typing", False))
@@ -197,6 +209,7 @@ async def websocket_endpoint(
 
             # ── Emoji Reaction ────────────────────────────
             elif msg_type == "react":
+                await _ensure_session()
                 if not current_session_id or not partner_uid:
                     continue
                 msg_id = data.get("message_id", "")
@@ -208,6 +221,7 @@ async def websocket_endpoint(
 
             # ── End Chat ──────────────────────────────────
             elif msg_type == "end_chat":
+                await _ensure_session()
                 if current_session_id and partner_uid:
                     await end_session(current_session_id)
                     await send_json(websocket, {"type": "chat_ended"})
