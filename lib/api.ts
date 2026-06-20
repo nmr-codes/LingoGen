@@ -39,6 +39,8 @@ export interface UserProfile {
   interests: string[];
   bio: string;
   looking_for: string;
+  native_language?: string;
+  learning_language?: string;
   onboarded: boolean;
   created_at: number;
 }
@@ -56,6 +58,8 @@ export interface ProfileUpdate {
   interests?: string[];
   bio?: string;
   looking_for?: string;
+  native_language?: string;
+  learning_language?: string;
   onboarded?: boolean;
 }
 
