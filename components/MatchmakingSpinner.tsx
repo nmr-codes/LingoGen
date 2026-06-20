@@ -1,11 +1,22 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 interface Props {
   queueCount: number;
   onCancel: () => void;
 }
 
 export default function MatchmakingSpinner({ queueCount, onCancel }: Props) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="matchmaking-container">
       <div className="matchmaking-card">
@@ -16,6 +27,9 @@ export default function MatchmakingSpinner({ queueCount, onCancel }: Props) {
           <div className="ring-center">🔍</div>
         </div>
         <h2 className="matchmaking-title">Finding your match...</h2>
+        <div style={{ color: "var(--primary)", fontSize: "18px", fontWeight: "bold", marginBottom: "12px" }}>
+          {seconds}s
+        </div>
         <p className="matchmaking-sub">
           Looking for someone with similar interests
         </p>
