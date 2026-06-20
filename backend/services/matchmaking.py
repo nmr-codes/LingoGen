@@ -51,8 +51,8 @@ def make_public_profile(profile: UserProfile) -> PublicProfile:
     )
 
 
-async def add_to_queue(uid: str, interests: list[str]) -> None:
-    await redis_service.join_queue(uid, interests)
+async def add_to_queue(uid: str, public_profile: dict) -> None:
+    await redis_service.join_queue(uid, public_profile)
     logger.info(f"User {uid} joined queue")
 
 
@@ -61,33 +61,65 @@ async def remove_from_queue(uid: str) -> None:
     logger.info(f"User {uid} left queue")
 
 
-async def find_match(uid: str, my_interests: list[str]) -> Optional[str]:
-    """
-    Try to find a matching user from the queue.
-    Priority: shared interests → oldest in queue (fallback).
-    """
-    members = await redis_service.get_queue_members()
-    candidates = [m for m in members if m != uid]
+async def find_match(uid: str, my_profile: dict) -> Optional[str]:
+    import time
+    members = await redis_service.get_queue_members_with_scores()
+    candidates = [m for m in members if m[0] != uid]
 
     if not candidates:
         return None
 
-    # Score candidates by shared interests
-    scored: list[tuple[int, str]] = []
-    for candidate_uid in candidates:
-        their_interests = await redis_service.get_user_interests(candidate_uid)
-        common = len(get_common_interests(my_interests, their_interests))
-        scored.append((common, candidate_uid))
+    my_native = my_profile.get("native_language")
+    my_learning = my_profile.get("learning_language")
+    my_interests = my_profile.get("interests", [])
+    my_intent = my_profile.get("looking_for")
+    my_age = my_profile.get("age")
+
+    scored: list[tuple[int, str, float]] = []
+    
+    for candidate_uid, joined_at in candidates:
+        their_profile = await redis_service.get_queue_profile(candidate_uid)
+        score = 0
+        
+        # 1. Language Exchange Bonus (+50)
+        their_native = their_profile.get("native_language")
+        their_learning = their_profile.get("learning_language")
+        if (my_native and their_learning and my_native == their_learning) and \
+           (my_learning and their_native and my_learning == their_native):
+            score += 50
+            
+        # 2. Shared Interests (+10 each)
+        their_interests = their_profile.get("interests", [])
+        common = get_common_interests(my_interests, their_interests)
+        score += len(common) * 10
+        
+        # 3. Intent Match (+20)
+        their_intent = their_profile.get("looking_for")
+        if my_intent and their_intent and my_intent == their_intent:
+            score += 20
+            
+        # 4. Age Proximity (+5)
+        their_age = their_profile.get("age")
+        if my_age and their_age and abs(my_age - their_age) <= 5:
+            score += 5
+            
+        scored.append((score, candidate_uid, joined_at))
 
     scored.sort(key=lambda x: x[0], reverse=True)
+    best_score, best_uid, best_joined_at = scored[0]
 
-    # Pick best match (with shared interests if any, else oldest in queue)
-    best_score, best_uid = scored[0]
     if best_score > 0:
         return best_uid
 
-    # No shared interests → pick the one who waited longest (first in sorted set)
-    return candidates[0] if candidates else None
+    # No matches. Enforce a 10-second wait before allowing a 0-score match
+    # Find the candidate who has waited the longest
+    oldest_candidate = min(scored, key=lambda x: x[2])
+    wait_time = time.time() - oldest_candidate[2]
+    
+    if wait_time > 10.0:
+        return oldest_candidate[1]
+        
+    return None
 
 
 async def create_session(uid1: str, uid2: str) -> ChatSession:

@@ -44,6 +44,8 @@ class DBService:
                 "photo_url": user.photo_url,
                 "age": user.age,
                 "gender": user.gender,
+                "native_language": user.native_language,
+                "learning_language": user.learning_language,
                 "interests": user.interests or [],
                 "bio": user.bio,
                 "looking_for": user.looking_for,

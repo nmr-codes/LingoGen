@@ -11,6 +11,8 @@ class UserProfile(BaseModel):
     photo_url: str = ""
     age: Optional[int] = None
     gender: Optional[str] = None
+    native_language: Optional[str] = None
+    learning_language: Optional[str] = None
     interests: List[str] = Field(default_factory=list)
     bio: str = ""
     looking_for: str = ""
@@ -23,6 +25,8 @@ class UserProfileUpdate(BaseModel):
     display_name: Optional[str] = None
     age: Optional[int] = Field(default=None, ge=13, le=99)
     gender: Optional[str] = None
+    native_language: Optional[str] = None
+    learning_language: Optional[str] = None
     interests: Optional[List[str]] = None
     bio: Optional[str] = Field(default=None, max_length=300)
     looking_for: Optional[str] = None
@@ -33,6 +37,8 @@ class PublicProfile(BaseModel):
     """Minimal profile shown to chat partner — stays anonymous."""
     age: Optional[int] = None
     gender: Optional[str] = None
+    native_language: Optional[str] = None
+    learning_language: Optional[str] = None
     interests: List[str] = Field(default_factory=list)
     looking_for: str = ""
 

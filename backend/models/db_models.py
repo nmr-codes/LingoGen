@@ -12,6 +12,8 @@ class UserDB(Base):
     photo_url = Column(String, default="")
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
+    native_language = Column(String)
+    learning_language = Column(String)
     interests = Column(JSONB, default=list)
     bio = Column(String, default="")
     looking_for = Column(String, default="")

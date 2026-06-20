@@ -5,7 +5,12 @@ import { useAuth } from "../../components/AuthProvider";
 import InterestSelector from "../../components/InterestSelector";
 import { updateProfile } from "../../lib/api";
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
+const LANGUAGES = [
+  "None", "English", "Spanish", "French", "Mandarin", "Arabic", "Hindi", 
+  "Portuguese", "Russian", "Japanese", "German", "Korean", "Italian",
+  "Turkish", "Vietnamese", "Polish", "Dutch", "Thai", "Swedish", "Greek", "Other"
+];
 
 export default function SetupPage() {
   const { profile, loading, setProfile } = useAuth();
@@ -19,6 +24,8 @@ export default function SetupPage() {
   const [interests, setInterests] = useState<string[]>([]);
   const [bio, setBio] = useState("");
   const [lookingFor, setLookingFor] = useState("");
+  const [nativeLanguage, setNativeLanguage] = useState("None");
+  const [learningLanguage, setLearningLanguage] = useState("None");
 
   useEffect(() => {
     if (!loading && !profile) router.push("/auth");
@@ -30,6 +37,8 @@ export default function SetupPage() {
       setInterests(profile.interests || []);
       setBio(profile.bio || "");
       setLookingFor(profile.looking_for || "");
+      setNativeLanguage(profile.native_language || "None");
+      setLearningLanguage(profile.learning_language || "None");
     }
   }, [loading, profile, router]);
 
@@ -49,6 +58,8 @@ export default function SetupPage() {
         interests,
         bio: bio.trim(),
         looking_for: lookingFor,
+        native_language: nativeLanguage !== "None" ? nativeLanguage : undefined,
+        learning_language: learningLanguage !== "None" ? learningLanguage : undefined,
         onboarded: true,
       });
       setProfile(updated);
@@ -143,6 +154,42 @@ export default function SetupPage() {
         )}
 
         {step === 3 && (
+          <div className="animate-slide-up">
+            <div className="setup-header">
+              <h1 className="setup-title">Language Exchange 🌍</h1>
+              <p className="setup-sub">Match with native speakers of the language you're learning!</p>
+            </div>
+            <div className="setup-card">
+              <div className="form-group">
+                <label className="form-label">Your Native Language</label>
+                <select 
+                  className="form-input" 
+                  value={nativeLanguage} 
+                  onChange={(e) => setNativeLanguage(e.target.value)}
+                  style={{ background: "var(--bg-card)", color: "var(--text)" }}
+                >
+                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Language You Want to Learn</label>
+                <select 
+                  className="form-input" 
+                  value={learningLanguage} 
+                  onChange={(e) => setLearningLanguage(e.target.value)}
+                  style={{ background: "var(--bg-card)", color: "var(--text)" }}
+                >
+                  {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <p style={{fontSize: 12, color: "var(--text-muted)", marginTop: 10}}>
+                Leave as "None" if you just want to chat normally!
+              </p>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="animate-slide-up">
             <div className="setup-header">
               <h1 className="setup-title">Almost there! ✨</h1>

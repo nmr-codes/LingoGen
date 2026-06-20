@@ -20,6 +20,8 @@ interface Message {
 interface PartnerInfo {
   age?: number;
   gender?: string;
+  native_language?: string;
+  learning_language?: string;
   interests: string[];
   looking_for?: string;
 }
@@ -305,6 +307,15 @@ export default function ChatPage() {
                   {formatDuration(chatDuration)}
                 </span>
               </div>
+              
+              {partner?.native_language && partner?.learning_language && (
+                <div style={{ fontSize: 12, color: "var(--primary)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span>🌍 Speaks {partner.native_language}</span>
+                  <span style={{color: "var(--text-dim)"}}>→</span>
+                  <span>Learning {partner.learning_language}</span>
+                </div>
+              )}
+
               {commonInterests.length > 0 && (
                 <div className="stranger-interests">
                   <span style={{ fontSize: 11, color: "var(--text-dim)" }}>In common:</span>

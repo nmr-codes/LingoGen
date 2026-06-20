@@ -121,13 +121,14 @@ async def websocket_endpoint(
 
                 searching = True
                 my_interests = profile.interests or []
-                await add_to_queue(uid, my_interests)
+                public_profile = make_public_profile(profile).model_dump()
+                await add_to_queue(uid, public_profile)
                 count = await get_queue_count()
                 await send_json(websocket, {"type": "searching", "queue_count": count})
                 await broadcast_queue_count()
 
                 # Try to find a match immediately
-                match_uid = await find_match(uid, my_interests)
+                match_uid = await find_match(uid, public_profile)
                 if match_uid:
                     session = await create_session(uid, match_uid)
                     current_session_id = session.session_id

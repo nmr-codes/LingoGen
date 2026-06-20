@@ -93,28 +93,28 @@ class RedisService:
             await self.client.hset(key, mapping=flat)
 
     # ── Matchmaking Queue ──────────────────────────────────
-    async def join_queue(self, uid: str, interests: list[str]) -> None:
+    async def join_queue(self, uid: str, profile_data: dict[str, Any]) -> None:
         import time
         pipe = self.client.pipeline()
         pipe.zadd("queue", {uid: time.time()})
-        pipe.set(f"queue_interests:{uid}", json.dumps(interests), ex=300)
+        pipe.set(f"queue_profile:{uid}", json.dumps(profile_data), ex=300)
         await pipe.execute()
 
     async def leave_queue(self, uid: str) -> None:
         pipe = self.client.pipeline()
         pipe.zrem("queue", uid)
-        pipe.delete(f"queue_interests:{uid}")
+        pipe.delete(f"queue_profile:{uid}")
         await pipe.execute()
 
-    async def get_queue_members(self) -> list[str]:
-        return await self.client.zrangebyscore("queue", "-inf", "+inf")
+    async def get_queue_members_with_scores(self) -> list[tuple[str, float]]:
+        return await self.client.zrangebyscore("queue", "-inf", "+inf", withscores=True)
 
     async def queue_count(self) -> int:
         return await self.client.zcard("queue")
 
-    async def get_user_interests(self, uid: str) -> list[str]:
-        raw = await self.client.get(f"queue_interests:{uid}")
-        return json.loads(raw) if raw else []
+    async def get_queue_profile(self, uid: str) -> dict[str, Any]:
+        raw = await self.client.get(f"queue_profile:{uid}")
+        return json.loads(raw) if raw else {}
 
     # ── Sessions ───────────────────────────────────────────
     async def create_session(self, session_id: str, uid1: str, uid2: str) -> None:

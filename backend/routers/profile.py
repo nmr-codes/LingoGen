@@ -59,3 +59,15 @@ async def get_debug_info(uid: str):
     sid = await redis_service.get_user_session(uid)
     sdata = await redis_service.get_session(sid) if sid else None
     return {"uid": uid, "sid": sid, "sdata": sdata}
+
+@router.get("/migrate-languages")
+async def migrate_languages():
+    from database import engine
+    from sqlalchemy import text
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN native_language VARCHAR;"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN learning_language VARCHAR;"))
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
