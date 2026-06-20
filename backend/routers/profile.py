@@ -55,7 +55,29 @@ async def get_online_count():
     return {"online": count, "searching": queue}
 
 @router.get("/debug")
-async def get_debug_info(uid: str):
+async def get_debug_info():
+    members = await redis_service.get_queue_members_with_scores()
+    import time
+    now = time.time()
+    
+    queue_data = []
+    for uid, joined_at in members:
+        prof = await redis_service.get_queue_profile(uid)
+        queue_data.append({
+            "uid": uid,
+            "joined_at": joined_at,
+            "wait_time": now - joined_at,
+            "profile": prof
+        })
+        
+    return {
+        "now": now,
+        "queue_count": len(members),
+        "queue": queue_data
+    }
+
+@router.get("/debug/user")
+async def get_debug_user_info(uid: str):
     sid = await redis_service.get_user_session(uid)
     sdata = await redis_service.get_session(sid) if sid else None
     return {"uid": uid, "sid": sid, "sdata": sdata}
