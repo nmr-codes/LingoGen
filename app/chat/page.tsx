@@ -99,7 +99,7 @@ export default function ChatPage() {
       const loadedMessages: Message[] = (e.messages as any[] || []).map((m: any) => ({
         id: m.id,
         text: m.text,
-        sender: m.sender_uid === profile.uid ? "me" : "stranger",
+        sender: m.sender_uid === profile?.uid ? "me" : "stranger",
         timestamp: m.timestamp * 1000,
       }));
       

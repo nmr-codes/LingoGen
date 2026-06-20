@@ -1,7 +1,7 @@
 const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
 
 export type WSEventType =
-  | "connected" | "pong" | "searching" | "cancelled"
+  | "connected" | "reconnected" | "pong" | "searching" | "cancelled"
   | "matched" | "message" | "typing" | "reaction"
   | "partner_left" | "chat_ended" | "queue_update" | "error";
 
