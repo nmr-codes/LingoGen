@@ -5,7 +5,7 @@ import { useAuth } from "../../components/AuthProvider";
 import MessageBubble from "../../components/MessageBubble";
 import MatchmakingSpinner from "../../components/MatchmakingSpinner";
 import { AnonSocket, getSocket, destroySocket, WSEvent } from "../../lib/websocket";
-import { getOnlineCount } from "../../lib/api";
+import { getOnlineCount, upgradeGuestAccount } from "../../lib/api";
 
 type ChatState = "idle" | "searching" | "chatting";
 
@@ -27,7 +27,7 @@ interface PartnerInfo {
 }
 
 export default function ChatPage() {
-  const { profile, token, loading } = useAuth();
+  const { profile, token, loading, setProfile } = useAuth();
   const router = useRouter();
 
   const [chatState, setChatState] = useState<ChatState>("idle");
@@ -43,6 +43,79 @@ export default function ChatPage() {
   const [totalChats, setTotalChats] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [partnerLeft, setPartnerLeft] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeEmail, setUpgradeEmail] = useState("");
+  const [upgradePassword, setUpgradePassword] = useState("");
+  const [upgradeSubmitting, setUpgradeSubmitting] = useState(false);
+  const [upgradeError, setUpgradeError] = useState("");
+
+  const upgradeBtnRef = useRef<HTMLDivElement>(null);
+
+  const handleGoogleUpgrade = async (response: { credential: string }) => {
+    try {
+      const data = await upgradeGuestAccount("google", { credential: response.credential });
+      setProfile(data.user);
+      setShowUpgradeModal(false);
+    } catch (err: any) {
+      alert(err.message || "Upgrade failed. Please try again.");
+    }
+  };
+
+  const handleEmailUpgrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!upgradeEmail || !upgradePassword) {
+      setUpgradeError("Please fill in all fields.");
+      return;
+    }
+    setUpgradeError("");
+    setUpgradeSubmitting(true);
+    try {
+      const data = await upgradeGuestAccount("email", { email: upgradeEmail, password: upgradePassword });
+      setProfile(data.user);
+      setShowUpgradeModal(false);
+    } catch (err: any) {
+      setUpgradeError(err.message || "Upgrade failed.");
+    } finally {
+      setUpgradeSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showUpgradeModal) return;
+    
+    const initUpgradeGoogle = () => {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+      const google = (window as any).google;
+      if (!clientId || !google) return;
+      
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleUpgrade,
+        auto_select: false,
+      });
+      
+      if (upgradeBtnRef.current) {
+        google.accounts.id.renderButton(upgradeBtnRef.current, {
+          theme: "filled_black",
+          size: "large",
+          width: 280,
+          text: "signup_with",
+          shape: "pill",
+        });
+      }
+    };
+
+    if ((window as any).google) {
+      initUpgradeGoogle();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => initUpgradeGoogle();
+      document.head.appendChild(script);
+    }
+  }, [showUpgradeModal]);
 
   const socketRef = useRef<AnonSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -192,12 +265,16 @@ export default function ChatPage() {
   }, [messages, strangerTyping]);
 
   const startSearching = useCallback(() => {
+    if (profile?.is_guest && totalChats >= 3) {
+      setShowUpgradeModal(true);
+      return;
+    }
     socketRef.current?.findMatch();
     setChatState("searching");
     setMessages([]);
     setPartner(null);
     setPartnerLeft(false);
-  }, []);
+  }, [profile, totalChats]);
 
   const cancelSearch = useCallback(() => {
     socketRef.current?.cancelMatch();
@@ -216,6 +293,10 @@ export default function ChatPage() {
   }, []);
 
   const skipToNext = useCallback(() => {
+    if (profile?.is_guest && totalChats >= 3) {
+      setShowUpgradeModal(true);
+      return;
+    }
     socketRef.current?.endChat();
     setMessages([]);
     setPartner(null);
@@ -226,7 +307,7 @@ export default function ChatPage() {
       socketRef.current?.findMatch();
       setChatState("searching");
     }, 300);
-  }, []);
+  }, [profile, totalChats]);
 
   const handleSend = useCallback(() => {
     const text = inputText.trim();
@@ -445,6 +526,68 @@ export default function ChatPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+      
+      {showUpgradeModal && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20
+        }}>
+          <div className="card animate-slide-up" style={{ width: "100%", maxWidth: 440, background: "var(--bg-card)", border: "1px solid var(--border)", padding: "40px 32px", textAlign: "center" }}>
+            <span style={{ fontSize: 48, marginBottom: 16, display: "block" }}>🚀</span>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12, letterSpacing: "-0.5px" }}>Unlock Permanent Features</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+              You've completed 3 guest chats! Register to choose a permanent nickname, save your chat history, and match by specific interests.
+            </p>
+            
+            {upgradeError && (
+              <div style={{ color: "var(--danger)", fontSize: 13, marginBottom: 16, padding: 10, background: "rgba(239, 68, 68, 0.05)", border: "1px solid rgba(239, 68, 68, 0.15)", borderRadius: "var(--radius-sm)" }}>
+                {upgradeError}
+              </div>
+            )}
+            
+            <form onSubmit={handleEmailUpgrade} style={{ textAlign: "left", marginBottom: 24 }}>
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label className="form-label" style={{ fontSize: 10 }}>Email Address</label>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  placeholder="name@example.com"
+                  value={upgradeEmail}
+                  onChange={(e) => setUpgradeEmail(e.target.value)}
+                  required 
+                  style={{ padding: "10px 12px" }}
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 20 }}>
+                <label className="form-label" style={{ fontSize: 10 }}>Password</label>
+                <input 
+                  type="password" 
+                  className="form-input" 
+                  placeholder="Create password"
+                  value={upgradePassword}
+                  onChange={(e) => setUpgradePassword(e.target.value)}
+                  required 
+                  style={{ padding: "10px 12px" }}
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 14 }} disabled={upgradeSubmitting}>
+                {upgradeSubmitting ? "Upgrading..." : "Save and Continue"}
+              </button>
+            </form>
+            
+            <div className="auth-divider" style={{ margin: "24px 0" }}>
+              <span>OR</span>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
+                Instantly upgrade and link your Google Account:
+              </p>
+              <div ref={upgradeBtnRef} style={{ minHeight: 40 }} />
+            </div>
+          </div>
         </div>
       )}
     </div>

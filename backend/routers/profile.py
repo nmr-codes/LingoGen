@@ -93,3 +93,14 @@ async def migrate_languages():
         return {"status": "success"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@router.get("/migrate-guests")
+async def migrate_guests():
+    from database import engine
+    from sqlalchemy import text
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN is_guest BOOLEAN DEFAULT FALSE;"))
+        return {"status": "success"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

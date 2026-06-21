@@ -19,6 +19,7 @@ class UserDB(Base):
     looking_for = Column(String, default="")
     hashed_password = Column(String, nullable=True)
     onboarded = Column(Boolean, default=False)
+    is_guest = Column(Boolean, default=False)
     created_at = Column(Float, default=lambda: datetime.utcnow().timestamp())
 
 

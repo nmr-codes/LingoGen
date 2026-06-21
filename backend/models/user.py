@@ -18,6 +18,7 @@ class UserProfile(BaseModel):
     looking_for: str = ""
     hashed_password: Optional[str] = None
     onboarded: bool = False
+    is_guest: bool = False
     created_at: float = Field(default_factory=lambda: datetime.utcnow().timestamp())
 
 
@@ -52,6 +53,12 @@ class GoogleAuthRequest(BaseModel):
 class EmailAuthRequest(BaseModel):
     email: str
     password: str
+
+class UpgradeRequest(BaseModel):
+    method: Literal["google", "email"]
+    credential: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 
 class AuthResponse(BaseModel):

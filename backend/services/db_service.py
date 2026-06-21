@@ -51,6 +51,7 @@ class DBService:
                 "looking_for": user.looking_for,
                 "hashed_password": user.hashed_password,
                 "onboarded": user.onboarded,
+                "is_guest": user.is_guest,
                 "created_at": user.created_at,
             }
 
@@ -86,5 +87,14 @@ class DBService:
                     "timestamp": m.timestamp
                 } for m in messages
             ]
+
+    async def delete_user(self, uid: str) -> None:
+        async with AsyncSessionLocal() as session:
+            stmt = select(UserDB).where(UserDB.uid == uid)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+            if user:
+                await session.delete(user)
+                await session.commit()
 
 db_service = DBService()

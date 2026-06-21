@@ -42,6 +42,7 @@ export interface UserProfile {
   native_language?: string;
   learning_language?: string;
   onboarded: boolean;
+  is_guest: boolean;
   created_at: number;
 }
 
@@ -86,6 +87,26 @@ export async function registerWithEmail(email: string, password: string): Promis
   const data = await apiFetch<AuthResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+  localStorage.setItem("ac_token", data.access_token);
+  return data;
+}
+
+export async function loginAsGuest(): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>("/auth/guest", {
+    method: "POST",
+  });
+  localStorage.setItem("ac_token", data.access_token);
+  return data;
+}
+
+export async function upgradeGuestAccount(
+  method: "google" | "email",
+  payload: { credential?: string; email?: string; password?: string }
+): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>("/auth/upgrade", {
+    method: "POST",
+    body: JSON.stringify({ method, ...payload }),
   });
   localStorage.setItem("ac_token", data.access_token);
   return data;

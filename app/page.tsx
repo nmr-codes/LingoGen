@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "next/navigation";
-import { getOnlineCount } from "../lib/api";
+import { getOnlineCount, loginAsGuest } from "../lib/api";
 
 const FEATURES = [
   {
@@ -54,9 +54,10 @@ const STEPS = [
 ];
 
 export default function LandingPage() {
-  const { profile, loading } = useAuth();
+  const { profile, loading, setAuth } = useAuth();
   const router = useRouter();
   const [onlineCount, setOnlineCount] = useState(0);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     getOnlineCount()
@@ -64,11 +65,21 @@ export default function LandingPage() {
       .catch(() => setOnlineCount(Math.floor(Math.random() * 120 + 80)));
   }, []);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     if (profile) {
       router.push("/chat");
     } else {
-      router.push("/auth");
+      setIsLoggingIn(true);
+      try {
+        const data = await loginAsGuest();
+        setAuth(data.user, data.access_token);
+        router.push("/chat");
+      } catch (err) {
+        console.error("Guest login failed:", err);
+        router.push("/auth");
+      } finally {
+        setIsLoggingIn(false);
+      }
     }
   };
 
@@ -100,8 +111,9 @@ export default function LandingPage() {
               id="hero-start-btn"
               className="btn btn-primary btn-lg"
               onClick={handleStart}
+              disabled={isLoggingIn}
             >
-              🔍 Find a Stranger
+              {isLoggingIn ? "🔄 Connecting..." : "🔍 Find a Stranger"}
             </button>
             <Link href="#how-it-works" className="btn btn-ghost btn-lg">
               How it works
@@ -178,8 +190,9 @@ export default function LandingPage() {
               id="cta-start-btn"
               className="btn btn-primary btn-lg"
               onClick={handleStart}
+              disabled={isLoggingIn}
             >
-              🚀 Start Chatting — It's Free
+              {isLoggingIn ? "🔄 Connecting..." : "🚀 Start Chatting — It's Free"}
             </button>
           </div>
         </div>
