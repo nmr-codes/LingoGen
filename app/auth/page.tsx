@@ -40,7 +40,7 @@ export default function AuthPage() {
   };
 
   useEffect(() => {
-    if (!loading && profile) {
+    if (!loading && profile && !profile.is_guest) {
       router.replace(profile.onboarded ? "/chat" : "/setup");
     }
   }, [profile, loading, router]);
