@@ -5,7 +5,7 @@ from websockets import connect
 
 # Use the deployed backend
 # Or use localhost if running locally. Let's use the deployed backend:
-# WS_URL = "wss://anonconnect-backend.onrender.com/ws"
+# WS_URL = "wss://lingogen-backend.onrender.com/ws"
 # But wait, we don't have tokens for the deployed backend easily.
 # Let's import the local backend functions to generate a token, then test locally!
 

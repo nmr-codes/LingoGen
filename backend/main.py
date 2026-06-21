@@ -18,7 +18,7 @@ from database import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting AnonConnect backend...")
+    logger.info("Starting LingoGen backend...")
     await redis_service.connect()
     await init_db()
     yield
@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
 settings = get_settings()
 
 app = FastAPI(
-    title="AnonConnect API",
-    description="Anonymous random chat — FastAPI + WebSockets + Redis",
+    title="LingoGen API",
+    description="LingoGen — Interactive language exchange matchmaking backend",
     version="1.0.0",
     lifespan=lifespan,
 )

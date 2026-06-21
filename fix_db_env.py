@@ -13,7 +13,7 @@ env_vars = [
     {"key": "DATABASE_URL", "value": "postgresql://anonconnect_db_bp_user:RKWMKIcyL9NkXt9NFHnbIHinZ9AeCjSJ@dpg-d8r2jbugvqtc73eeu4ng-a/anonconnect_db_bp"},
     {"key": "REDIS_URL", "value": "redis://red-d8r2jbugvqtc73eeu4jg:6379"},
     {"key": "JWT_SECRET", "value": "Jhd7Pzg1eL9qgkZ7ujrtZM4KRgfnlTD5gDEKp1vrrcM="},
-    {"key": "FRONTEND_URL", "value": "https://anonconnect-alpha.vercel.app"},
+    {"key": "FRONTEND_URL", "value": "https://lingogen.vercel.app"},
     {"key": "DEBUG", "value": "False"}
 ]
 

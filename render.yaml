@@ -3,14 +3,14 @@ version: "1"
 services:
   # Managed Redis Instance
   - type: redis
-    name: anonconnect-redis-bp
+    name: lingogen-redis-bp
     region: ohio
     plan: free
     ipAllowList: [] # empty means only internal access
 
   # The FastAPI Backend
   - type: web
-    name: anonconnect-backend
+    name: lingogen-backend
     env: docker
     dockerContext: backend
     dockerfilePath: backend/Dockerfile
@@ -19,17 +19,17 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: anonconnect-db-bp
+          name: lingogen-db-bp
           property: connectionString
       - key: REDIS_URL
         fromService:
           type: redis
-          name: anonconnect-redis-bp
+          name: lingogen-redis-bp
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: "https://anonconnect-alpha.vercel.app"
+        value: "https://lingogen.vercel.app"
       - key: DEBUG
         value: "False"
       - key: GOOGLE_CLIENT_ID
@@ -37,6 +37,6 @@ services:
 
 databases:
   # Managed PostgreSQL Database
-  - name: anonconnect-db-bp
+  - name: lingogen-db-bp
     region: ohio
     plan: free

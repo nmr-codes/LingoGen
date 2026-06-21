@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthProvider";
-import { loginWithGoogle, loginWithEmail, registerWithEmail } from "../../lib/api";
+import { loginWithGoogle, loginWithEmail, registerWithEmail, checkEmailRegistered } from "../../lib/api";
 
 declare global {
   interface Window {
@@ -32,6 +32,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const changeMode = (mode: "login" | "signup") => {
     setAuthMode(mode);
@@ -41,7 +42,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (!loading && profile && !profile.is_guest) {
-      router.replace(profile.onboarded ? "/chat" : "/setup");
+      router.replace("/chat");
     }
   }, [profile, loading, router]);
 
@@ -106,7 +107,7 @@ export default function AuthPage() {
     try {
       const data = await loginWithGoogle(response.credential, authModeRef.current);
       setAuth(data.user, data.access_token);
-      router.replace(data.user.onboarded ? "/chat" : "/setup");
+      router.replace("/chat");
     } catch (err: any) {
       setErrorMsg(err.message || "Google authentication failed. Please try again.");
     }
@@ -125,6 +126,16 @@ export default function AuthPage() {
     setErrorMsg("");
     setIsSubmitting(true);
     try {
+      if (authMode === "signup") {
+        // Pre-check if email is registered
+        const check = await checkEmailRegistered(email);
+        if (check.registered) {
+          setShowLoginPrompt(true);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       let data;
       if (authMode === "login") {
         data = await loginWithEmail(email, password);
@@ -132,7 +143,7 @@ export default function AuthPage() {
         data = await registerWithEmail(email, password);
       }
       setAuth(data.user, data.access_token);
-      router.replace(data.user.onboarded ? "/chat" : "/setup");
+      router.replace("/chat");
     } catch (err: any) {
       setErrorMsg(err.message || "Authentication failed. Please try again.");
     } finally {
@@ -140,21 +151,45 @@ export default function AuthPage() {
     }
   };
 
+  const handlePromptYes = async () => {
+    setShowLoginPrompt(false);
+    setAuthMode("login");
+    authModeRef.current = "login";
+    setIsSubmitting(true);
+    setErrorMsg("");
+    try {
+      const data = await loginWithEmail(email, password);
+      setAuth(data.user, data.access_token);
+      router.replace("/chat");
+    } catch (err: any) {
+      setErrorMsg("Incorrect password. Please enter the correct password to sign in.");
+      setPassword(""); // Reset password field
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePromptNo = () => {
+    setShowLoginPrompt(false);
+  };
+
   if (loading) return null;
 
   return (
     <div className="auth-page">
-      <div className="auth-card animate-slide-up">
-        <h1 className="auth-title">AnonConnect</h1>
+      <div className="auth-card animate-slide-up" style={{ background: "rgba(11, 19, 41, 0.75)" }}>
+        <h1 className="auth-title" style={{ background: "var(--gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+          LingoGen
+        </h1>
         <p className="auth-sub">
-          Anonymous conversations tailored to your interests.
+          Interactive language exchange tailored to your interests.
         </p>
 
         {/* Tab Selector */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 32, background: "var(--bg-card-2)", padding: 4 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 32, background: "var(--bg-card-2)", padding: 4, borderRadius: "var(--radius-md)" }}>
           <button 
             className={`btn ${authMode === "login" ? "btn-primary" : "btn-ghost"}`} 
-            style={{ flex: 1, padding: "8px 0" }}
+            style={{ flex: 1, padding: "8px 0", borderRadius: "var(--radius-sm)" }}
             onClick={() => changeMode("login")}
             type="button"
           >
@@ -162,7 +197,7 @@ export default function AuthPage() {
           </button>
           <button 
             className={`btn ${authMode === "signup" ? "btn-primary" : "btn-ghost"}`} 
-            style={{ flex: 1, padding: "8px 0" }}
+            style={{ flex: 1, padding: "8px 0", borderRadius: "var(--radius-sm)" }}
             onClick={() => changeMode("signup")}
             type="button"
           >
@@ -171,7 +206,7 @@ export default function AuthPage() {
         </div>
 
         {errorMsg && (
-          <div style={{ color: "var(--danger)", fontSize: 13, marginBottom: 16, padding: "10px", background: "rgba(255, 74, 74, 0.05)", border: "1px solid rgba(255, 74, 74, 0.2)" }}>
+          <div style={{ color: "var(--danger)", fontSize: 13, marginBottom: 16, padding: "10px", background: "rgba(239, 68, 68, 0.05)", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
             {errorMsg}
           </div>
         )}
@@ -227,7 +262,6 @@ export default function AuthPage() {
               ? "Continue with Google to sign in." 
               : "Continue with Google to create an account."}
           </p>
-          {/* Google Identity Services renders the real button here */}
           <div
             id="google-signin-container"
             ref={btnRef}
@@ -236,10 +270,47 @@ export default function AuthPage() {
         </div>
 
         <p className="auth-terms">
-          By continuing, you agree to our Terms of Service and Privacy Policy.<br/>
-          Your identity is never shared with chat partners.
+          By continuing, you agree to LingoGen's Terms of Service and Privacy Policy.<br/>
+          Your identity is never shared with language partners.
         </p>
       </div>
+
+      {/* Account Conflict Conflict Modal Prompt */}
+      {showLoginPrompt && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(3, 7, 18, 0.85)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 20
+        }}>
+          <div className="card animate-slide-up" style={{
+            width: "100%", maxWidth: 420, background: "var(--bg-card)", border: "1px solid var(--border)",
+            padding: "40px 32px", textAlign: "center", borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-glow)"
+          }}>
+            <span style={{ fontSize: 44, marginBottom: 16, display: "block" }}>🌍</span>
+            <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 12 }}>Account Already Exists</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+              You already have a LingoGen account with the email <strong>{email}</strong>. Do you want to sign in instead?
+            </p>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                style={{ flex: 1, padding: "12px 0", background: "var(--gradient)", border: "none" }}
+                onClick={handlePromptYes}
+              >
+                Yes, Sign In
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-ghost" 
+                style={{ flex: 1, padding: "12px 0", border: "1px solid var(--border)" }}
+                onClick={handlePromptNo}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -66,6 +66,20 @@ def display_name_from_email(email: str) -> str:
     return email.split("@")[0] if "@" in email else "user"
 
 
+@router.get("/check-email")
+async def check_email(email: str):
+    email = email.strip().lower()
+    uid = await db_service.get_uid_by_email(email)
+    exists = False
+    if uid:
+        existing = await db_service.get_user(uid)
+        if existing:
+            user = UserProfile(**existing)
+            if not user.is_guest:
+                exists = True
+    return {"registered": exists}
+
+
 @router.post("/register", response_model=AuthResponse)
 async def email_register(body: EmailAuthRequest):
     """Register a new user with email and password."""
@@ -108,14 +122,21 @@ async def email_register(body: EmailAuthRequest):
 
 @router.post("/login", response_model=AuthResponse)
 async def email_login(body: EmailAuthRequest):
-    """Login with email and password."""
+    """Login with email and password. Auto-creates account if not registered."""
     email = body.email.strip().lower()
     uid = await db_service.get_uid_by_email(email)
     if not uid:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Account not found. Please sign up."
+        # User not registered. Auto-create account (frictionless sign-up)
+        new_uid = str(uuid.uuid4())
+        user = UserProfile(
+            uid=new_uid,
+            email=email,
+            display_name=email.split("@")[0],
+            hashed_password=get_password_hash(body.password)
         )
+        await db_service.save_user(new_uid, user.model_dump())
+        token = create_access_token(user.uid)
+        return AuthResponse(access_token=token, user=user)
     
     existing = await db_service.get_user(uid)
     if not existing:

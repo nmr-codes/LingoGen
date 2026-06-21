@@ -92,6 +92,10 @@ export async function registerWithEmail(email: string, password: string): Promis
   return data;
 }
 
+export async function checkEmailRegistered(email: string): Promise<{ registered: boolean }> {
+  return apiFetch<{ registered: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`);
+}
+
 export async function loginAsGuest(): Promise<AuthResponse> {
   const data = await apiFetch<AuthResponse>("/auth/guest", {
     method: "POST",

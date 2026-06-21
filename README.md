@@ -1,6 +1,6 @@
-# AnonConnect 💬
+# LingoGen 💬
 
-> Anonymous random chat — **Next.js + FastAPI + WebSockets + Redis**
+> LingoGen — Interactive language exchange matchmaking using **Next.js + FastAPI + WebSockets + Redis**
 
 ---
 

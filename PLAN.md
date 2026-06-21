@@ -1,6 +1,6 @@
-# AnonConnect Improvement & Fix Plan 🚀
+# LingoGen Improvement & Fix Plan 🚀
 
-This document outlines the evaluation, core errors, and step-by-step roadmap to upgrade AnonConnect from a fragile prototype to a production-ready, highly-retentive, and scalable anonymous chatting application.
+This document outlines the evaluation, core errors, and step-by-step roadmap to upgrade LingoGen from a fragile prototype to a production-ready, highly-retentive, and scalable anonymous chatting application.
 
 ---
 

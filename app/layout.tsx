@@ -4,13 +4,13 @@ import { AuthProvider } from "../components/AuthProvider";
 import Navbar from "../components/Navbar";
 
 export const metadata: Metadata = {
-  title: "AnonConnect — Meet Strangers, Make Connections",
+  title: "LingoGen — Interactive Language Exchange Matchmaking",
   description:
-    "Connect with random strangers anonymously. Chat based on shared interests. No profiles exposed, just real conversations.",
-  keywords: "anonymous chat, random chat, meet strangers, online chat",
+    "Connect with random language partners anonymously. Learn and chat based on native and learning languages and shared interests.",
+  keywords: "language exchange, random chat, learn languages, meet strangers, online chat, LingoGen",
   openGraph: {
-    title: "AnonConnect",
-    description: "Connect with random strangers anonymously",
+    title: "LingoGen",
+    description: "Connect with language exchange partners anonymously",
     type: "website",
   },
 };

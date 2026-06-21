@@ -14,9 +14,9 @@ def create_web_service():
     url = "https://api.render.com/v1/services"
     payload = {
         "type": "web_service",
-        "name": "anonconnect-backend",
+        "name": "lingogen-backend",
         "ownerId": OWNER_ID,
-        "repo": "https://github.com/nmr-codes/anonconnect",
+        "repo": "https://github.com/nmr-codes/LingoGen",
         "branch": "master",
         "env": "docker",
         "serviceDetails": {
@@ -29,7 +29,7 @@ def create_web_service():
                 {"key": "DATABASE_URL", "value": "postgresql://anonconnect_db_user:vcoAwu6zP1mJ6l9ZaI0cRXTGXjY2HeEO@dpg-d8r2dnojs32c73bgd2u0-a/anonconnect_db"},
                 {"key": "REDIS_URL", "value": "redis://red-d8r2digjs32c73bgcro0:6379"},
                 {"key": "JWT_SECRET", "generateValue": True},
-                {"key": "FRONTEND_URL", "value": "https://anonconnect-alpha.vercel.app"},
+                {"key": "FRONTEND_URL", "value": "https://lingogen.vercel.app"},
                 {"key": "DEBUG", "value": "False"}
             ]
         }

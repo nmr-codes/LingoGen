@@ -13,7 +13,7 @@ services = res.json()
 
 backend_id = None
 for s in services:
-    if s["service"]["name"] == "anonconnect-backend":
+    if s["service"]["name"] == "lingogen-backend":
         backend_id = s["service"]["id"]
         break
 

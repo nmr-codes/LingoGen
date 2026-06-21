@@ -126,7 +126,6 @@ export default function ChatPage() {
   // Auth guard
   useEffect(() => {
     if (!loading && !profile) router.push("/auth");
-    if (!loading && profile && !profile.onboarded) router.push("/setup");
   }, [loading, profile, router]);
 
   // Online count

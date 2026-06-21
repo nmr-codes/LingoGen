@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # ============================================================
-#  AnonConnect — Start Backend
+#  LingoGen — Start Backend
 #  Make executable: chmod +x start-backend.sh
 # ============================================================
 set -e
 
 BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 
-echo "🚀 Starting AnonConnect backend..."
+echo "🚀 Starting LingoGen backend..."
 echo "📁 Directory: $BACKEND_DIR"
 
 # Check Redis
