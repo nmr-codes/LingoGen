@@ -32,22 +32,45 @@ async def google_auth(body: GoogleAuthRequest):
     if existing:
         user = UserProfile(**existing)
     else:
-        user = UserProfile(
-            uid=uid,
-            email=google_info.get("email", ""),
-            display_name=google_info.get("name", ""),
-            photo_url=google_info.get("picture", ""),
-        )
-        await db_service.save_user(uid, user.model_dump())
+        email = google_info.get("email", "").strip().lower()
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Google account must have an email address."
+            )
+            
+        # Check if user with this email already exists (e.g. registered via email)
+        email_uid = await db_service.get_uid_by_email(email)
+        if email_uid:
+            # User registered with email. Link Google UID by migrating their db row
+            existing_email_user = await db_service.get_user(email_uid)
+            if existing_email_user:
+                user = UserProfile(**existing_email_user)
+                user.uid = uid
+                user.photo_url = google_info.get("picture", user.photo_url)
+                await db_service.save_user(uid, user.model_dump())
+                await db_service.delete_user(email_uid)
+        else:
+            user = UserProfile(
+                uid=uid,
+                email=email,
+                display_name=google_info.get("name", display_name_from_email(email)),
+                photo_url=google_info.get("picture", ""),
+            )
+            await db_service.save_user(uid, user.model_dump())
 
     token = create_access_token(user.uid)
     return AuthResponse(access_token=token, user=user)
+
+def display_name_from_email(email: str) -> str:
+    return email.split("@")[0] if "@" in email else "user"
 
 
 @router.post("/register", response_model=AuthResponse)
 async def email_register(body: EmailAuthRequest):
     """Register a new user with email and password."""
-    uid = await db_service.get_uid_by_email(body.email)
+    email = body.email.strip().lower()
+    uid = await db_service.get_uid_by_email(email)
     if uid:
         existing = await db_service.get_user(uid)
         if existing:
@@ -73,8 +96,8 @@ async def email_register(body: EmailAuthRequest):
     new_uid = str(uuid.uuid4())
     user = UserProfile(
         uid=new_uid,
-        email=body.email,
-        display_name=body.email.split("@")[0],
+        email=email,
+        display_name=email.split("@")[0],
         hashed_password=get_password_hash(body.password)
     )
     await db_service.save_user(new_uid, user.model_dump())
@@ -86,7 +109,8 @@ async def email_register(body: EmailAuthRequest):
 @router.post("/login", response_model=AuthResponse)
 async def email_login(body: EmailAuthRequest):
     """Login with email and password."""
-    uid = await db_service.get_uid_by_email(body.email)
+    email = body.email.strip().lower()
+    uid = await db_service.get_uid_by_email(email)
     if not uid:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
