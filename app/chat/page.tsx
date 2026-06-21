@@ -42,6 +42,7 @@ export default function ChatPage() {
   const [chatDuration, setChatDuration] = useState(0);
   const [totalChats, setTotalChats] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [partnerLeft, setPartnerLeft] = useState(false);
 
   const socketRef = useRef<AnonSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -82,6 +83,7 @@ export default function ChatPage() {
       setIceBreaker((e.ice_breaker as string) || "");
       setSessionId((e.session_id as string) || null);
       setTotalChats((t) => t + 1);
+      setPartnerLeft(false);
       setMessages([{
         id: "sys-start",
         text: "🎉 Connected! Say hello to your new stranger.",
@@ -95,6 +97,7 @@ export default function ChatPage() {
       setPartner((e.partner as PartnerInfo) || null);
       setSessionId((e.session_id as string) || null);
       setTotalChats((t) => Math.max(t, 1));
+      setPartnerLeft(false);
       
       const loadedMessages: Message[] = (e.messages as any[] || []).map((m: any) => ({
         id: m.id,
@@ -142,10 +145,7 @@ export default function ChatPage() {
         sender: "system",
         timestamp: Date.now(),
       }]);
-      setChatState("idle");
-      setPartner(null);
-      setCommonInterests([]);
-      setSessionId(null);
+      setPartnerLeft(true);
       setStrangerTyping(false);
     });
 
@@ -196,11 +196,13 @@ export default function ChatPage() {
     setChatState("searching");
     setMessages([]);
     setPartner(null);
+    setPartnerLeft(false);
   }, []);
 
   const cancelSearch = useCallback(() => {
     socketRef.current?.cancelMatch();
     setChatState("idle");
+    setPartnerLeft(false);
   }, []);
 
   const endChat = useCallback(() => {
@@ -210,6 +212,7 @@ export default function ChatPage() {
     setPartner(null);
     setSessionId(null);
     setStrangerTyping(false);
+    setPartnerLeft(false);
   }, []);
 
   const skipToNext = useCallback(() => {
@@ -218,6 +221,7 @@ export default function ChatPage() {
     setPartner(null);
     setSessionId(null);
     setStrangerTyping(false);
+    setPartnerLeft(false);
     setTimeout(() => {
       socketRef.current?.findMatch();
       setChatState("searching");
@@ -405,24 +409,42 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <div className="chat-input-area">
-            <div className="chat-input-row">
-              <textarea
-                id="chat-message-input"
-                ref={inputRef}
-                className="chat-input"
-                placeholder="Type a message... (Enter to send)"
-                value={inputText}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                rows={1}
-              />
-              <button id="send-message-btn" className="send-btn"
-                onClick={handleSend} disabled={!inputText.trim()} title="Send">
-                ➤
-              </button>
+          {partnerLeft ? (
+            <div className="chat-input-area partner-left-footer">
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, width: "100%" }}>
+                <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Stranger has left the conversation.
+                </p>
+                <div style={{ display: "flex", gap: 12, justifyContent: "center", width: "100%", maxWidth: 360 }}>
+                  <button className="btn btn-primary" onClick={skipToNext} style={{ flex: 1, padding: "12px 0" }}>
+                    ⏭ Next Stranger
+                  </button>
+                  <button className="btn btn-ghost" onClick={endChat} style={{ flex: 1, padding: "12px 0" }}>
+                    ✕ Leave Chat
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="chat-input-area">
+              <div className="chat-input-row">
+                <textarea
+                  id="chat-message-input"
+                  ref={inputRef}
+                  className="chat-input"
+                  placeholder="Type a message... (Enter to send)"
+                  value={inputText}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                />
+                <button id="send-message-btn" className="send-btn"
+                  onClick={handleSend} disabled={!inputText.trim()} title="Send">
+                  ➤
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

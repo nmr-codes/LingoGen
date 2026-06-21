@@ -71,6 +71,12 @@ export default function AuthPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!loading && window.google) {
+      initGoogle();
+    }
+  }, [loading, authMode]);
+
   const initGoogle = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || !window.google) return;

@@ -106,6 +106,9 @@ class RedisService:
         pipe.delete(f"queue_profile:{uid}")
         await pipe.execute()
 
+    async def get_queue_members(self) -> list[str]:
+        return await self.client.zrange("queue", 0, -1)
+
     async def get_queue_members_with_scores(self) -> list[tuple[str, float]]:
         return await self.client.zrangebyscore("queue", "-inf", "+inf", withscores=True)
 

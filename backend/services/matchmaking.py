@@ -112,6 +112,9 @@ async def find_match(uid: str, my_profile: dict) -> Optional[str]:
             
         scored.append((score, candidate_uid, joined_at))
 
+    if not scored:
+        return None
+
     scored.sort(key=lambda x: x[0], reverse=True)
     best_score, best_uid, best_joined_at = scored[0]
 

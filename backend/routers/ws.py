@@ -76,6 +76,7 @@ async def websocket_endpoint(
     partner_uid: Optional[str] = None
     searching: bool = False
     heartbeat_task: Optional[asyncio.Task] = None
+    matchmaking_task: Optional[asyncio.Task] = None
 
     # Check for active session for seamless reconnection
     sid = await redis_service.get_user_session(uid)
@@ -147,6 +148,9 @@ async def websocket_endpoint(
                     await send_json(websocket, {"type": "error", "message": "Already in a chat"})
                     continue
 
+                if matchmaking_task and not matchmaking_task.done():
+                    matchmaking_task.cancel()
+
                 searching = True
                 my_interests = profile.interests or []
                 public_profile = make_public_profile(profile).model_dump()
@@ -195,11 +199,13 @@ async def websocket_endpoint(
                         
                         await asyncio.sleep(1.0)
                 
-                asyncio.create_task(matchmaking_loop())
+                matchmaking_task = asyncio.create_task(matchmaking_loop())
 
             # ── Cancel Match ──────────────────────────────
             elif msg_type == "cancel_match":
                 searching = False
+                if matchmaking_task and not matchmaking_task.done():
+                    matchmaking_task.cancel()
                 await remove_from_queue(uid)
                 await send_json(websocket, {"type": "cancelled"})
                 await broadcast_queue_count()
@@ -277,6 +283,8 @@ async def websocket_endpoint(
                     current_session_id = None
                     partner_uid = None
                 searching = False
+                if matchmaking_task and not matchmaking_task.done():
+                    matchmaking_task.cancel()
                 await remove_from_queue(uid)
 
             else:
@@ -289,6 +297,8 @@ async def websocket_endpoint(
     finally:
         # Cleanup
         searching = False  # Critical: Kill orphaned matchmaking loops
+        if matchmaking_task and not matchmaking_task.done():
+            matchmaking_task.cancel()
         if heartbeat_task:
             heartbeat_task.cancel()
             
