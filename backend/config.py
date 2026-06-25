@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = True
 
+    # Email — Resend API (Option B)
+    resend_api_key: str = ""
+    smtp_from_name: str = "LingoGen"
+    smtp_from_email: str = "noreply@lingogen.me"
+
 
 @lru_cache
 def get_settings() -> Settings:

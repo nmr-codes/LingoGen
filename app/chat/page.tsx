@@ -5,7 +5,8 @@ import { useAuth } from "../../components/AuthProvider";
 import MessageBubble from "../../components/MessageBubble";
 import MatchmakingSpinner from "../../components/MatchmakingSpinner";
 import { AnonSocket, getSocket, destroySocket, WSEvent } from "../../lib/websocket";
-import { getOnlineCount, upgradeGuestAccount } from "../../lib/api";
+import { getOnlineCount, upgradeGuestAccount, sendVerificationCode, verifyCode, checkEmailRegistered } from "../../lib/api";
+import CodeInput from "../../components/CodeInput";
 
 type ChatState = "idle" | "searching" | "chatting";
 
@@ -44,12 +45,26 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [partnerLeft, setPartnerLeft] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeStep, setUpgradeStep] = useState<1 | 2 | 3>(1);
   const [upgradeEmail, setUpgradeEmail] = useState("");
   const [upgradePassword, setUpgradePassword] = useState("");
+  const [upgradeConfirmPassword, setUpgradeConfirmPassword] = useState("");
+  const [upgradeCodeDigits, setUpgradeCodeDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const [upgradeVerificationToken, setUpgradeVerificationToken] = useState("");
+  const [upgradeResendCountdown, setUpgradeResendCountdown] = useState(0);
   const [upgradeSubmitting, setUpgradeSubmitting] = useState(false);
   const [upgradeError, setUpgradeError] = useState("");
 
   const upgradeBtnRef = useRef<HTMLDivElement>(null);
+
+  // Upgrade countdown timer
+  useEffect(() => {
+    if (upgradeResendCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setUpgradeResendCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [upgradeResendCountdown]);
 
   const handleGoogleUpgrade = async (response: { credential: string }) => {
     try {
@@ -61,16 +76,68 @@ export default function ChatPage() {
     }
   };
 
-  const handleEmailUpgrade = async (e: React.FormEvent) => {
+  const handleUpgradeSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!upgradeEmail || !upgradePassword) {
-      setUpgradeError("Please fill in all fields.");
+    if (!upgradeEmail) {
+      setUpgradeError("Please enter your email.");
       return;
     }
     setUpgradeError("");
     setUpgradeSubmitting(true);
     try {
-      const data = await upgradeGuestAccount("email", { email: upgradeEmail, password: upgradePassword });
+      // Check if email already registered
+      const check = await checkEmailRegistered(upgradeEmail);
+      if (check.registered) {
+        setUpgradeError("This email is already registered. Please sign in or use another email.");
+        return;
+      }
+      await sendVerificationCode(upgradeEmail, "signup");
+      setUpgradeStep(2);
+      setUpgradeResendCountdown(60);
+    } catch (err: any) {
+      setUpgradeError(err.message || "Failed to send code.");
+    } finally {
+      setUpgradeSubmitting(false);
+    }
+  };
+
+  const handleUpgradeVerifyCode = async (code: string) => {
+    setUpgradeError("");
+    setUpgradeSubmitting(true);
+    try {
+      const data = await verifyCode(upgradeEmail, code, "signup");
+      if (data.verified) {
+        setUpgradeVerificationToken(data.verification_token);
+        setUpgradeStep(3);
+      } else {
+        setUpgradeError("Failed to verify code.");
+      }
+    } catch (err: any) {
+      setUpgradeError(err.message || "Invalid verification code.");
+      setUpgradeCodeDigits(["", "", "", "", "", ""]);
+    } finally {
+      setUpgradeSubmitting(false);
+    }
+  };
+
+  const handleEmailUpgrade = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!upgradePassword || !upgradeConfirmPassword) {
+      setUpgradeError("Please fill in both password fields.");
+      return;
+    }
+    if (upgradePassword !== upgradeConfirmPassword) {
+      setUpgradeError("Passwords do not match.");
+      return;
+    }
+    setUpgradeError("");
+    setUpgradeSubmitting(true);
+    try {
+      const data = await upgradeGuestAccount("email", {
+        email: upgradeEmail,
+        password: upgradePassword,
+        verification_token: upgradeVerificationToken,
+      });
       setProfile(data.user);
       setShowUpgradeModal(false);
     } catch (err: any) {
@@ -82,6 +149,16 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!showUpgradeModal) return;
+    
+    // Reset state when opening modal
+    setUpgradeStep(1);
+    setUpgradeEmail("");
+    setUpgradePassword("");
+    setUpgradeConfirmPassword("");
+    setUpgradeCodeDigits(["", "", "", "", "", ""]);
+    setUpgradeVerificationToken("");
+    setUpgradeResendCountdown(0);
+    setUpgradeError("");
     
     const initUpgradeGoogle = () => {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -546,46 +623,140 @@ export default function ChatPage() {
               </div>
             )}
             
-            <form onSubmit={handleEmailUpgrade} style={{ textAlign: "left", marginBottom: 24 }}>
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label" style={{ fontSize: 10 }}>Email Address</label>
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  placeholder="name@example.com"
-                  value={upgradeEmail}
-                  onChange={(e) => setUpgradeEmail(e.target.value)}
-                  required 
-                  style={{ padding: "10px 12px" }}
+            {/* STEP 1: Enter email */}
+            {upgradeStep === 1 && (
+              <form onSubmit={handleUpgradeSendCode} style={{ textAlign: "left", marginBottom: 24 }}>
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <label className="form-label" style={{ fontSize: 10 }}>Email Address</label>
+                  <input 
+                    type="email" 
+                    className="form-input" 
+                    placeholder="name@example.com"
+                    value={upgradeEmail}
+                    onChange={(e) => setUpgradeEmail(e.target.value)}
+                    required 
+                    style={{ padding: "10px 12px" }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 14 }} disabled={upgradeSubmitting}>
+                  {upgradeSubmitting ? "Sending code..." : "Send Verification Code"}
+                </button>
+              </form>
+            )}
+
+            {/* STEP 2: Enter code */}
+            {upgradeStep === 2 && (
+              <div style={{ marginBottom: 24, textAlign: "center" }}>
+                <div className="email-sent-badge" style={{ marginBottom: 16 }}>
+                  Code sent to {upgradeEmail}
+                </div>
+                <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
+                  Enter the 6-digit verification code:
+                </p>
+                
+                <CodeInput
+                  digits={upgradeCodeDigits}
+                  onChange={setUpgradeCodeDigits}
+                  onComplete={handleUpgradeVerifyCode}
+                  disabled={upgradeSubmitting}
                 />
+                
+                <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
+                  {upgradeResendCountdown > 0 ? (
+                    <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                      Resend code in {upgradeResendCountdown}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="resend-link"
+                      disabled={upgradeSubmitting}
+                      onClick={async () => {
+                        setUpgradeError("");
+                        setUpgradeSubmitting(true);
+                        try {
+                          await sendVerificationCode(upgradeEmail, "signup");
+                          setUpgradeResendCountdown(60);
+                          setUpgradeCodeDigits(["", "", "", "", "", ""]);
+                        } catch (err: any) {
+                          setUpgradeError(err.message || "Failed to resend code.");
+                        } finally {
+                          setUpgradeSubmitting(false);
+                        }
+                      }}
+                    >
+                      Resend Code
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ fontSize: 11, textDecoration: "underline", opacity: 0.8 }}
+                    onClick={() => setUpgradeStep(1)}
+                  >
+                    Change Email
+                  </button>
+                </div>
               </div>
-              <div className="form-group" style={{ marginBottom: 20 }}>
-                <label className="form-label" style={{ fontSize: 10 }}>Password</label>
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  placeholder="Create password"
-                  value={upgradePassword}
-                  onChange={(e) => setUpgradePassword(e.target.value)}
-                  required 
-                  style={{ padding: "10px 12px" }}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 14 }} disabled={upgradeSubmitting}>
-                {upgradeSubmitting ? "Upgrading..." : "Save and Continue"}
-              </button>
-            </form>
+            )}
+
+            {/* STEP 3: Create password */}
+            {upgradeStep === 3 && (
+              <form onSubmit={handleEmailUpgrade} style={{ textAlign: "left", marginBottom: 24 }}>
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label className="form-label" style={{ fontSize: 10 }}>Create Password</label>
+                  <input 
+                    type="password" 
+                    className="form-input" 
+                    placeholder="Create password"
+                    value={upgradePassword}
+                    onChange={(e) => setUpgradePassword(e.target.value)}
+                    required 
+                    style={{ padding: "10px 12px" }}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <label className="form-label" style={{ fontSize: 10 }}>Confirm Password</label>
+                  <input 
+                    type="password" 
+                    className="form-input" 
+                    placeholder="Confirm password"
+                    value={upgradeConfirmPassword}
+                    onChange={(e) => setUpgradeConfirmPassword(e.target.value)}
+                    required 
+                    style={{ padding: "10px 12px" }}
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" style={{ width: "100%", padding: 14 }} disabled={upgradeSubmitting}>
+                  {upgradeSubmitting ? "Upgrading..." : "Save and Continue"}
+                </button>
+              </form>
+            )}
             
-            <div className="auth-divider" style={{ margin: "24px 0" }}>
-              <span>OR</span>
-            </div>
-            
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
-                Instantly upgrade and link your Google Account:
-              </p>
-              <div ref={upgradeBtnRef} style={{ minHeight: 40 }} />
-            </div>
+            {/* Show Google upgrade option only on step 1 */}
+            {upgradeStep === 1 && (
+              <>
+                <div className="auth-divider" style={{ margin: "24px 0" }}>
+                  <span>OR</span>
+                </div>
+                
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 12 }}>
+                    Instantly upgrade and link your Google Account:
+                  </p>
+                  <div ref={upgradeBtnRef} style={{ minHeight: 40 }} />
+                </div>
+              </>
+            )}
+
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ width: "100%", marginTop: 16, fontSize: 12, color: "var(--text-dim)" }}
+              onClick={() => setShowUpgradeModal(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

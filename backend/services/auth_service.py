@@ -65,6 +65,34 @@ def decode_access_token(token: str) -> Optional[str]:
         return None
 
 
+def create_verification_token(email: str) -> str:
+    """Create a short-lived JWT that proves an email has been verified."""
+    settings = _settings()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=30)  # 30-minute validity
+    payload = {
+        "sub": email.lower(),
+        "purpose": "email_verification",
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def verify_verification_token(token: str, expected_email: str) -> bool:
+    """Verify that a verification token is valid and matches the expected email."""
+    settings = _settings()
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        if payload.get("purpose") != "email_verification":
+            return False
+        if payload.get("sub") != expected_email.lower():
+            return False
+        return True
+    except JWTError:
+        return False
+
+
+
 # ── User Management ────────────────────────────────────────
 async def get_or_create_user(google_info: dict) -> UserProfile:
     uid: str = google_info["sub"]

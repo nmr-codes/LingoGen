@@ -183,5 +183,34 @@ class RedisService:
         keys = await self.client.keys("online:*")
         return len(keys)
 
+    # ── Email Verification Codes ──────────────────────────
+    async def store_verification_code(self, email: str, code: str, purpose: str = "signup", ttl: int = 600) -> None:
+        """Store a verification code in Redis with a TTL (default 10 minutes)."""
+        key = f"verify:{purpose}:{email.lower()}"
+        await self.client.set(key, code, ex=ttl)
+
+    async def get_verification_code(self, email: str, purpose: str = "signup") -> Optional[str]:
+        """Retrieve a stored verification code."""
+        key = f"verify:{purpose}:{email.lower()}"
+        return await self.client.get(key)
+
+    async def delete_verification_code(self, email: str, purpose: str = "signup") -> None:
+        """Delete a verification code after successful verification."""
+        key = f"verify:{purpose}:{email.lower()}"
+        await self.client.delete(key)
+
+    async def check_rate_limit(self, email: str, action: str = "send_code", max_attempts: int = 5, window: int = 300) -> bool:
+        """Rate limiting: returns True if under limit, False if rate-limited."""
+        key = f"rate:{action}:{email.lower()}"
+        current = await self.client.get(key)
+        if current and int(current) >= max_attempts:
+            return False
+        pipe = self.client.pipeline()
+        pipe.incr(key)
+        pipe.expire(key, window)
+        await pipe.execute()
+        return True
+
 
 redis_service = RedisService()
+

@@ -1,16 +1,32 @@
 import uuid
 import random
+import secrets
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from models.user import GoogleAuthRequest, EmailAuthRequest, UpgradeRequest, AuthResponse, UserProfile
+from models.user import (
+    GoogleAuthRequest,
+    EmailAuthRequest,
+    UpgradeRequest,
+    AuthResponse,
+    UserProfile,
+    SendCodeRequest,
+    SendCodeResponse,
+    VerifyCodeRequest,
+    VerifyCodeResponse,
+    EmailRegisterRequest
+)
 from services.auth_service import (
     verify_google_token, 
     create_access_token, 
     get_password_hash, 
     verify_password,
-    decode_access_token
+    decode_access_token,
+    create_verification_token,
+    verify_verification_token
 )
 from services.db_service import db_service
+from services.email_service import email_service
+from services.redis_service import redis_service
 
 router = APIRouter()
 
@@ -80,33 +96,139 @@ async def check_email(email: str):
     return {"registered": exists}
 
 
-@router.post("/register", response_model=AuthResponse)
-async def email_register(body: EmailAuthRequest):
-    """Register a new user with email and password."""
+@router.post("/send-code", response_model=SendCodeResponse)
+async def send_verification_code(body: SendCodeRequest):
+    """
+    Send a 6-digit verification code to the user's email.
+    Rate-limited to 5 attempts per 5 minutes per email.
+    """
     email = body.email.strip().lower()
+    
+    # Validate email format (basic check)
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email address."
+        )
+    
+    # Rate limiting
+    allowed = await redis_service.check_rate_limit(email, action="send_code", max_attempts=5, window=300)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many code requests. Please wait 5 minutes and try again."
+        )
+    
+    # For signup: check if email is already registered
+    if body.purpose == "signup":
+        uid = await db_service.get_uid_by_email(email)
+        if uid:
+            existing = await db_service.get_user(uid)
+            if existing:
+                user = UserProfile(**existing)
+                if not user.is_guest and user.hashed_password:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="This email is already registered. Please sign in instead."
+                    )
+    
+    # Generate 6-digit code
+    code = f"{secrets.randbelow(900000) + 100000}"  # Ensures 6 digits (100000-999999)
+    
+    # Store in Redis with 10-minute TTL
+    await redis_service.store_verification_code(email, code, purpose=body.purpose)
+    
+    # Send email
+    sent = await email_service.send_verification_code(email, code)
+    if not sent:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email. Please try again later."
+        )
+    
+    return SendCodeResponse(
+        message=f"Verification code sent to {email}. Check your inbox.",
+        expires_in=600
+    )
+
+
+@router.post("/verify-code", response_model=VerifyCodeResponse)
+async def verify_code(body: VerifyCodeRequest):
+    """
+    Verify the 6-digit code entered by the user.
+    Returns a verification_token (short-lived JWT) on success.
+    """
+    email = body.email.strip().lower()
+    
+    # Rate limiting on verification attempts (prevent brute force)
+    allowed = await redis_service.check_rate_limit(email, action="verify_code", max_attempts=10, window=600)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many verification attempts. Please request a new code."
+        )
+    
+    # Retrieve stored code
+    stored_code = await redis_service.get_verification_code(email, purpose=body.purpose)
+    if not stored_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Verification code expired or not found. Please request a new code."
+        )
+    
+    # Compare codes
+    if body.code.strip() != stored_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect verification code. Please try again."
+        )
+    
+    # Code is valid — delete it so it can't be reused
+    await redis_service.delete_verification_code(email, purpose=body.purpose)
+    
+    # Generate a verification token (proves email is verified for the next 30 minutes)
+    verification_token = create_verification_token(email)
+    
+    return VerifyCodeResponse(
+        verified=True,
+        verification_token=verification_token
+    )
+
+
+@router.post("/register", response_model=AuthResponse)
+async def email_register(body: EmailRegisterRequest):
+    """
+    Register a new user with email and password.
+    Requires a valid verification_token obtained from /verify-code.
+    """
+    email = body.email.strip().lower()
+    
+    # Verify the verification token
+    if not verify_verification_token(body.verification_token, email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification. Please verify your email again."
+        )
+    
+    # Check if user already exists
     uid = await db_service.get_uid_by_email(email)
     if uid:
         existing = await db_service.get_user(uid)
         if existing:
             user = UserProfile(**existing)
             if user.hashed_password:
-                if verify_password(body.password, user.hashed_password):
-                    # Auto-login
-                    token = create_access_token(user.uid)
-                    return AuthResponse(access_token=token, user=user)
-                else:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Email already registered. Incorrect password for auto-login."
-                    )
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already registered. Please sign in."
+                )
             else:
-                # User exists but was registered via Google (no password). 
-                # Since they are trying to sign up, link this password to their account and auto-login!
+                # User exists via Google — link password to account
                 user.hashed_password = get_password_hash(body.password)
                 await db_service.save_user(uid, user.model_dump())
                 token = create_access_token(user.uid)
                 return AuthResponse(access_token=token, user=user)
     
+    # Create new user
     new_uid = str(uuid.uuid4())
     user = UserProfile(
         uid=new_uid,
@@ -122,31 +244,27 @@ async def email_register(body: EmailAuthRequest):
 
 @router.post("/login", response_model=AuthResponse)
 async def email_login(body: EmailAuthRequest):
-    """Login with email and password. Auto-creates account if not registered."""
+    """Login with email and password. Rejects unregistered emails."""
     email = body.email.strip().lower()
     uid = await db_service.get_uid_by_email(email)
     if not uid:
-        # User not registered. Auto-create account (frictionless sign-up)
-        new_uid = str(uuid.uuid4())
-        user = UserProfile(
-            uid=new_uid,
-            email=email,
-            display_name=email.split("@")[0],
-            hashed_password=get_password_hash(body.password)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email. Please sign up first."
         )
-        await db_service.save_user(new_uid, user.model_dump())
-        token = create_access_token(user.uid)
-        return AuthResponse(access_token=token, user=user)
     
     existing = await db_service.get_user(uid)
     if not existing:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found."
+        )
         
     user = UserProfile(**existing)
     if not user.hashed_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Account was created with Google. Please continue with Google."
+            detail="This account uses Google sign-in. Please continue with Google."
         )
         
     if not verify_password(body.password, user.hashed_password):
@@ -157,6 +275,7 @@ async def email_login(body: EmailAuthRequest):
         
     token = create_access_token(user.uid)
     return AuthResponse(access_token=token, user=user)
+
 
 # ── Guest Mode & Upgrades ──────────────────────────────────
 bearer = HTTPBearer()
@@ -256,8 +375,17 @@ async def upgrade_guest(
     elif body.method == "email":
         if not body.email or not body.password:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email and password required.")
-            
+        if not body.verification_token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email verification required.")
+        
         target_email = body.email.strip().lower()
+        
+        # Verify the email was verified
+        if not verify_verification_token(body.verification_token, target_email):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification. Please verify your email again."
+            )
         
         # If email already exists, switch session
         email_uid = await db_service.get_uid_by_email(target_email)
@@ -280,3 +408,4 @@ async def upgrade_guest(
 
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid upgrade method.")
+

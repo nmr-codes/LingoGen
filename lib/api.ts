@@ -52,6 +52,16 @@ export interface AuthResponse {
   user: UserProfile;
 }
 
+export interface SendCodeResponse {
+  message: string;
+  expires_in: number;
+}
+
+export interface VerifyCodeResponse {
+  verified: boolean;
+  verification_token: string;
+}
+
 export interface ProfileUpdate {
   display_name?: string;
   age?: number;
@@ -83,10 +93,49 @@ export async function loginWithEmail(email: string, password: string): Promise<A
   return data;
 }
 
+/** @deprecated Use registerWithVerifiedEmail instead */
 export async function registerWithEmail(email: string, password: string): Promise<AuthResponse> {
   const data = await apiFetch<AuthResponse>("/auth/register", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+  localStorage.setItem("ac_token", data.access_token);
+  return data;
+}
+
+export async function sendVerificationCode(
+  email: string,
+  purpose: "signup" | "reset_password" = "signup"
+): Promise<SendCodeResponse> {
+  return apiFetch<SendCodeResponse>("/auth/send-code", {
+    method: "POST",
+    body: JSON.stringify({ email, purpose }),
+  });
+}
+
+export async function verifyCode(
+  email: string,
+  code: string,
+  purpose: "signup" | "reset_password" = "signup"
+): Promise<VerifyCodeResponse> {
+  return apiFetch<VerifyCodeResponse>("/auth/verify-code", {
+    method: "POST",
+    body: JSON.stringify({ email, code, purpose }),
+  });
+}
+
+export async function registerWithVerifiedEmail(
+  email: string,
+  password: string,
+  verificationToken: string
+): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      password,
+      verification_token: verificationToken,
+    }),
   });
   localStorage.setItem("ac_token", data.access_token);
   return data;
@@ -106,7 +155,12 @@ export async function loginAsGuest(): Promise<AuthResponse> {
 
 export async function upgradeGuestAccount(
   method: "google" | "email",
-  payload: { credential?: string; email?: string; password?: string }
+  payload: {
+    credential?: string;
+    email?: string;
+    password?: string;
+    verification_token?: string;
+  }
 ): Promise<AuthResponse> {
   const data = await apiFetch<AuthResponse>("/auth/upgrade", {
     method: "POST",
@@ -115,6 +169,7 @@ export async function upgradeGuestAccount(
   localStorage.setItem("ac_token", data.access_token);
   return data;
 }
+
 
 export function logout(): void {
   localStorage.removeItem("ac_token");

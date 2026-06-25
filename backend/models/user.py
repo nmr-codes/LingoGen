@@ -59,9 +59,38 @@ class UpgradeRequest(BaseModel):
     credential: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
+    verification_token: Optional[str] = None
 
 
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserProfile
+
+
+class SendCodeRequest(BaseModel):
+    email: str
+    purpose: Literal["signup", "reset_password"] = "signup"
+
+
+class SendCodeResponse(BaseModel):
+    message: str
+    expires_in: int = 600  # seconds
+
+
+class VerifyCodeRequest(BaseModel):
+    email: str
+    code: str
+    purpose: Literal["signup", "reset_password"] = "signup"
+
+
+class VerifyCodeResponse(BaseModel):
+    verified: bool
+    verification_token: str  # Short-lived JWT proving email is verified
+
+
+class EmailRegisterRequest(BaseModel):
+    email: str
+    password: str
+    verification_token: str  # Must be present and valid
+

@@ -639,3 +639,122 @@ input, textarea, select { font-family: var(--font); }
   .chat-header { flex-direction: column; align-items: flex-start; gap: 16px; }
   .navbar { top: 8px; left: 8px; right: 8px; border-radius: var(--radius-md); }
 }
+
+
+/* ── Verification Code Input ────────────────────────── */
+.code-input-group {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 24px 0;
+}
+
+.code-input-group input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: "Inter", monospace;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  caret-color: var(--primary);
+  outline: none;
+  transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.code-input-group input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.code-input-group input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Auth Step Transitions ──────────────────────────── */
+.auth-step-enter {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.auth-step-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* ── Resend Code Link ───────────────────────────────── */
+.resend-link {
+  color: var(--primary);
+  font-size: 13px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.resend-link:hover {
+  color: var(--primary-light);
+}
+
+.resend-link:disabled {
+  color: var(--text-dim);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* ── Password Toggle ────────────────────────────────── */
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 60px; /* Leave room for toggle button */
+}
+
+.password-field .toggle-visibility {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.password-field .toggle-visibility:hover {
+  color: var(--text);
+}
+
+/* ── Step Indicator (Email Sent) ────────────────────── */
+.email-sent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.email-sent-badge::before {
+  content: "✓";
+  font-weight: 700;
+}
+
