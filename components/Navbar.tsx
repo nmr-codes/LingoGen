@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./AuthProvider";
 import { destroySocket } from "../lib/websocket";
 
@@ -9,6 +9,19 @@ export default function Navbar() {
   const { profile, loading, signOut } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    const activeTheme = document.documentElement.getAttribute("data-theme") as "light" | "dark" || "dark";
+    setTheme(activeTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    localStorage.setItem("theme", nextTheme);
+  };
 
   const handleSignOut = () => {
     destroySocket();
@@ -30,18 +43,21 @@ export default function Navbar() {
             <path d="M25,50 C25,35 35,25 50,25 C65,25 75,35 75,50 C75,65 65,75 50,75 C42,75 35,72 30,67 L20,70 L23,60 C24.2,57 25,53.5 25,50 Z" fill="url(#logo-grad)" opacity="0.3" />
             <circle cx="50" cy="50" r="18" fill="none" stroke="url(#logo-grad)" strokeWidth="6" />
             <path d="M50,15 C69.3,15 85,30.7 85,50 C85,69.3 69.3,85 50,85" fill="none" stroke="url(#logo-grad)" strokeWidth="8" strokeLinecap="round" />
-            <path d="M15,50 C15,30.7 30.7,15 50,15" fill="none" stroke="#ffffff" strokeWidth="8" strokeLinecap="round" />
+            <path d="M15,50 C15,30.7 30.7,15 50,15" fill="none" stroke="var(--text)" strokeWidth="8" strokeLinecap="round" />
           </svg>
           <span className="brand-name">LingoGen</span>
         </Link>
 
         <div className="navbar-actions">
+          <button className="theme-toggle-btn" onClick={toggleTheme} aria-label="Toggle theme">
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           {!loading && (
             <>
               {profile ? (
                 <div className="nav-user">
                   <Link href="/chat" className="btn btn-primary btn-sm" id="nav-find-btn">
-                    🔍 Find Partner
+                    🔍 <span>Find Partner</span>
                   </Link>
                   <div className="avatar-menu">
                     <button
