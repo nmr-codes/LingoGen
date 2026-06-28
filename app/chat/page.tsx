@@ -219,6 +219,9 @@ export default function ChatPage() {
 
     const offConnected = socket.on("connected", (e) => {
       setOnlineCount((e.online_count as number) || 0);
+      if (e.user) {
+        setProfile(e.user as any);
+      }
     });
 
     const offQueue = socket.on("queue_update", (e) => {
@@ -232,6 +235,12 @@ export default function ChatPage() {
       setIceBreaker((e.ice_breaker as string) || "");
       setSessionId((e.session_id as string) || null);
       setTotalChats((t) => t + 1);
+      if (profile && profile.is_guest) {
+        setProfile({
+          ...profile,
+          chat_count: (profile.chat_count ?? 0) + 1,
+        });
+      }
       setPartnerLeft(false);
       setMessages([{
         id: "sys-start",
@@ -317,10 +326,15 @@ export default function ChatPage() {
       alert("Error: " + String(e.message));
     });
 
+    const offRegRequired = socket.on("registration_required", (e) => {
+      setShowUpgradeModal(true);
+      setChatState("idle");
+    });
+
     return () => {
       offConnected(); offQueue(); offMatched(); offReconnected(); offMsg();
       offTyping(); offReaction(); offLeft(); offEnded();
-      offCancelled(); offSearching(); offError();
+      offCancelled(); offSearching(); offError(); offRegRequired();
     };
   }, [token, profile]);
 
@@ -341,7 +355,7 @@ export default function ChatPage() {
   }, [messages, strangerTyping]);
 
   const startSearching = useCallback(() => {
-    if (profile?.is_guest && totalChats >= 3) {
+    if (profile?.is_guest && (profile?.chat_count ?? 0) >= 3) {
       setShowUpgradeModal(true);
       return;
     }
@@ -350,7 +364,7 @@ export default function ChatPage() {
     setMessages([]);
     setPartner(null);
     setPartnerLeft(false);
-  }, [profile, totalChats]);
+  }, [profile]);
 
   const cancelSearch = useCallback(() => {
     socketRef.current?.cancelMatch();
@@ -369,7 +383,7 @@ export default function ChatPage() {
   }, []);
 
   const skipToNext = useCallback(() => {
-    if (profile?.is_guest && totalChats >= 3) {
+    if (profile?.is_guest && (profile?.chat_count ?? 0) >= 3) {
       setShowUpgradeModal(true);
       return;
     }
@@ -383,7 +397,7 @@ export default function ChatPage() {
       socketRef.current?.findMatch();
       setChatState("searching");
     }, 300);
-  }, [profile, totalChats]);
+  }, [profile]);
 
   const handleSend = useCallback(() => {
     const text = inputText.trim();

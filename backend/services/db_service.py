@@ -52,6 +52,7 @@ class DBService:
                 "hashed_password": user.hashed_password,
                 "onboarded": user.onboarded,
                 "is_guest": user.is_guest,
+                "chat_count": user.chat_count or 0,
                 "created_at": user.created_at,
             }
 

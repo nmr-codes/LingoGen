@@ -43,6 +43,7 @@ export interface UserProfile {
   learning_language?: string;
   onboarded: boolean;
   is_guest: boolean;
+  chat_count?: number;
   created_at: number;
 }
 

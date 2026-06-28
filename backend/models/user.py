@@ -19,6 +19,7 @@ class UserProfile(BaseModel):
     hashed_password: Optional[str] = None
     onboarded: bool = False
     is_guest: bool = False
+    chat_count: int = 0
     created_at: float = Field(default_factory=lambda: datetime.utcnow().timestamp())
 
 

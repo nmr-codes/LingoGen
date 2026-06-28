@@ -3,7 +3,7 @@ const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
 export type WSEventType =
   | "connected" | "reconnected" | "pong" | "searching" | "cancelled"
   | "matched" | "message" | "typing" | "reaction"
-  | "partner_left" | "chat_ended" | "queue_update" | "error";
+  | "partner_left" | "chat_ended" | "queue_update" | "error" | "registration_required";
 
 export interface WSEvent {
   type: WSEventType;

@@ -154,6 +154,15 @@ async def try_create_session(uid1: str, uid2: str) -> Optional[ChatSession]:
         )
         # Store session
         await redis_service.create_session(session.session_id, uid1, uid2)
+        
+        # Increment chat count for guest users in DB
+        from services.db_service import db_service
+        for uid in [uid1, uid2]:
+            user_data = await db_service.get_user(uid)
+            if user_data and user_data.get("is_guest"):
+                new_count = user_data.get("chat_count", 0) + 1
+                await db_service.update_user(uid, {"chat_count": new_count})
+
         logger.info(f"Session {session.session_id} created: {uid1} ↔ {uid2}")
         return session
         

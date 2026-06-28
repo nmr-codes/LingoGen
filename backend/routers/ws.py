@@ -144,6 +144,15 @@ async def websocket_endpoint(
 
             # ── Find Match ────────────────────────────────
             elif msg_type == "find_match":
+                from services.db_service import db_service
+                db_user = await db_service.get_user(uid)
+                if db_user and db_user.get("is_guest") and db_user.get("chat_count", 0) >= 3:
+                    await send_json(websocket, {
+                        "type": "registration_required",
+                        "message": "You have reached the limit of 3 guest chats. Please register to continue matching."
+                    })
+                    continue
+
                 if current_session_id:
                     await send_json(websocket, {"type": "error", "message": "Already in a chat"})
                     continue

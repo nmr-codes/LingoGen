@@ -20,6 +20,7 @@ class UserDB(Base):
     hashed_password = Column(String, nullable=True)
     onboarded = Column(Boolean, default=False)
     is_guest = Column(Boolean, default=False)
+    chat_count = Column(Integer, default=0, nullable=False)
     created_at = Column(Float, default=lambda: datetime.utcnow().timestamp())
 
 
