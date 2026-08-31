@@ -1,4 +1,20 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const getRuntimeApiBase = (): string => {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname.toLowerCase();
+    if (host === "lingogen.me" || host === "www.lingogen.me") {
+      return "https://lingogen-backend.onrender.com";
+    }
+    if (host.includes("localhost") || host.includes("127.0.0.1")) {
+      return "http://localhost:8000";
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+};
+
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || getRuntimeApiBase();
+export const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  "342137988513-555frkee94jp06ou2jt8o10ctfbs7tri.apps.googleusercontent.com";
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;

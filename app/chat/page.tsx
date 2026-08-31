@@ -5,7 +5,7 @@ import { useAuth } from "../../components/AuthProvider";
 import MessageBubble from "../../components/MessageBubble";
 import MatchmakingSpinner from "../../components/MatchmakingSpinner";
 import { AnonSocket, getSocket, destroySocket, WSEvent } from "../../lib/websocket";
-import { getOnlineCount, upgradeGuestAccount, sendVerificationCode, verifyCode, checkEmailRegistered } from "../../lib/api";
+import { GOOGLE_CLIENT_ID, getOnlineCount, upgradeGuestAccount, sendVerificationCode, verifyCode, checkEmailRegistered } from "../../lib/api";
 import CodeInput from "../../components/CodeInput";
 
 type ChatState = "idle" | "searching" | "chatting";
@@ -161,7 +161,7 @@ export default function ChatPage() {
     setUpgradeError("");
     
     const initUpgradeGoogle = () => {
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+      const clientId = GOOGLE_CLIENT_ID;
       const google = (window as any).google;
       if (!clientId || !google) return;
       

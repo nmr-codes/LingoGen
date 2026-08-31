@@ -1,4 +1,17 @@
-const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+const getRuntimeWsBase = (): string => {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname.toLowerCase();
+    if (host === "lingogen.me" || host === "www.lingogen.me") {
+      return "wss://lingogen-backend.onrender.com";
+    }
+    if (host.includes("localhost") || host.includes("127.0.0.1")) {
+      return "ws://localhost:8000";
+    }
+  }
+  return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+};
+
+const WS_BASE = process.env.NEXT_PUBLIC_WS_URL || getRuntimeWsBase();
 
 export type WSEventType =
   | "connected" | "reconnected" | "pong" | "searching" | "cancelled"
