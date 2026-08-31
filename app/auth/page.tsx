@@ -160,18 +160,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleGitHubLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-    if (!clientId) {
-      setErrorMsg("GitHub sign-in is not configured for this environment.");
-      return;
-    }
-
-    const redirectUri = `${window.location.origin}/auth/github/callback`;
-    const githubUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("user:email")}`;
-    window.location.href = githubUrl;
-  };
-
   // Sign Up Step 1: Send Code
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -505,26 +493,6 @@ export default function AuthPage() {
                 style={{ display: "flex", justifyContent: "center" }}
               />
             </div>
-
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={handleGitHubLogin}
-              style={{
-                width: "100%",
-                padding: "14px 18px",
-                borderRadius: "var(--radius-md)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                fontWeight: 700,
-                marginTop: 12,
-              }}
-            >
-              <span aria-hidden="true">🐙</span>
-              Continue with GitHub
-            </button>
           </>
         )}
 

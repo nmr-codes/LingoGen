@@ -13,7 +13,6 @@ class UserDB(Base):
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
     google_id = Column(String, unique=True, nullable=True, index=True)
-    github_id = Column(String, unique=True, nullable=True, index=True)
     native_language = Column(String)
     learning_language = Column(String)
     interests = Column(JSONB, default=list)

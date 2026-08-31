@@ -36,9 +36,9 @@ async def init_db():
             # Auto-migration for legacy + provider columns
             from sqlalchemy import text
             for column_sql in [
+                "ALTER TABLE users DROP COLUMN IF EXISTS github_id;",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_count INTEGER DEFAULT 0;",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR;",
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id VARCHAR;",
             ]:
                 try:
                     await conn.execute(text(column_sql))

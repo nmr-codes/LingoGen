@@ -16,11 +16,6 @@ class Settings(BaseSettings):
     # Google OAuth
     google_client_id: str = ""
 
-    # GitHub OAuth
-    github_client_id: str = ""
-    github_client_secret: str = ""
-    github_redirect_uri: str = "http://localhost:3000/auth/github/callback"
-
     # CORS
     frontend_url: str = "http://localhost:3000"
 

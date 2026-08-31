@@ -45,7 +45,6 @@ class DBService:
                 "age": user.age,
                 "gender": user.gender,
                 "google_id": user.google_id,
-                "github_id": user.github_id,
                 "native_language": user.native_language,
                 "learning_language": user.learning_language,
                 "interests": user.interests or [],
@@ -65,7 +64,7 @@ class DBService:
             return result.scalar_one_or_none()
 
     async def get_user_by_provider(self, provider_field: str, provider_id: str) -> Optional[Dict[str, Any]]:
-        if provider_field not in {"google_id", "github_id"}:
+        if provider_field != "google_id":
             return None
         async with AsyncSessionLocal() as session:
             field = getattr(UserDB, provider_field)
@@ -82,7 +81,6 @@ class DBService:
                 "age": user.age,
                 "gender": user.gender,
                 "google_id": user.google_id,
-                "github_id": user.github_id,
                 "native_language": user.native_language,
                 "learning_language": user.learning_language,
                 "interests": user.interests or [],
