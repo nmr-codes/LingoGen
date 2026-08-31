@@ -89,6 +89,15 @@ export async function loginWithGoogle(credential: string, mode: "login" | "signu
   return data;
 }
 
+export async function loginWithGitHub(code: string): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>("/auth/github", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+  localStorage.setItem("ac_token", data.access_token);
+  return data;
+}
+
 export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
   const data = await apiFetch<AuthResponse>("/auth/login", {
     method: "POST",

@@ -33,14 +33,18 @@ async def init_db():
             # For a production app we'd use Alembic, but for now we create tables directly
             await conn.run_sync(Base.metadata.create_all)
             
-            # Auto-migration for chat_count column
+            # Auto-migration for legacy + provider columns
             from sqlalchemy import text
-            try:
-                await conn.execute(text("ALTER TABLE users ADD COLUMN chat_count INTEGER DEFAULT 0;"))
-                logger.info("Migration: Added chat_count column to users table.")
-            except Exception:
-                # Column might already exist or table not initialized yet
-                pass
+            for column_sql in [
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS chat_count INTEGER DEFAULT 0;",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR;",
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id VARCHAR;",
+            ]:
+                try:
+                    await conn.execute(text(column_sql))
+                    logger.info("Migration: Applied %s", column_sql)
+                except Exception:
+                    pass
         logger.info("Database tables initialized successfully.")
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")

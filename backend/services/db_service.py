@@ -44,6 +44,8 @@ class DBService:
                 "photo_url": user.photo_url,
                 "age": user.age,
                 "gender": user.gender,
+                "google_id": user.google_id,
+                "github_id": user.github_id,
                 "native_language": user.native_language,
                 "learning_language": user.learning_language,
                 "interests": user.interests or [],
@@ -61,6 +63,37 @@ class DBService:
             stmt = select(UserDB.uid).where(UserDB.email == email)
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
+
+    async def get_user_by_provider(self, provider_field: str, provider_id: str) -> Optional[Dict[str, Any]]:
+        if provider_field not in {"google_id", "github_id"}:
+            return None
+        async with AsyncSessionLocal() as session:
+            field = getattr(UserDB, provider_field)
+            stmt = select(UserDB).where(field == provider_id)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+            if not user:
+                return None
+            return {
+                "uid": user.uid,
+                "email": user.email,
+                "display_name": user.display_name,
+                "photo_url": user.photo_url,
+                "age": user.age,
+                "gender": user.gender,
+                "google_id": user.google_id,
+                "github_id": user.github_id,
+                "native_language": user.native_language,
+                "learning_language": user.learning_language,
+                "interests": user.interests or [],
+                "bio": user.bio,
+                "looking_for": user.looking_for,
+                "hashed_password": user.hashed_password,
+                "onboarded": user.onboarded,
+                "is_guest": user.is_guest,
+                "chat_count": user.chat_count or 0,
+                "created_at": user.created_at,
+            }
 
     async def save_message(self, session_id: str, msg_data: Dict[str, Any]) -> None:
         async with AsyncSessionLocal() as session:

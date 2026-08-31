@@ -93,6 +93,69 @@ def verify_verification_token(token: str, expected_email: str) -> bool:
 
 
 
+async def get_github_user_info(code: str) -> dict:
+    """Exchange an OAuth code for GitHub profile and email details."""
+    settings = _settings()
+    if not settings.github_client_id or not settings.github_client_secret:
+        raise ValueError("GitHub OAuth is not configured.")
+
+    headers = {"Accept": "application/json"}
+    token_payload = {
+        "client_id": settings.github_client_id,
+        "client_secret": settings.github_client_secret,
+        "code": code,
+        "redirect_uri": settings.github_redirect_uri,
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        token_response = await client.post(
+            "https://github.com/login/oauth/access_token",
+            data=token_payload,
+            headers=headers,
+        )
+        if token_response.status_code != 200:
+            raise ValueError("Failed to exchange GitHub authorization code.")
+
+        token_data = token_response.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            error_detail = token_data.get("error_description") or token_data.get("error") or "Unknown GitHub OAuth error."
+            raise ValueError(error_detail)
+
+        auth_headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+        }
+
+        profile_response = await client.get("https://api.github.com/user", headers=auth_headers)
+        if profile_response.status_code != 200:
+            raise ValueError("Failed to fetch GitHub profile information.")
+        profile_data = profile_response.json()
+
+        email = profile_data.get("email")
+        if not email:
+            email_response = await client.get("https://api.github.com/user/emails", headers=auth_headers)
+            if email_response.status_code == 200:
+                email_items = email_response.json() or []
+                primary_email = next(
+                    (item["email"] for item in email_items if item.get("primary") and item.get("verified")),
+                    None,
+                )
+                if not primary_email:
+                    primary_email = next((item["email"] for item in email_items if item.get("verified")), None)
+                email = primary_email
+
+        if not email:
+            raise ValueError("GitHub account email is required for sign-in.")
+
+        return {
+            "id": str(profile_data.get("id")),
+            "email": str(email).strip().lower(),
+            "name": profile_data.get("name") or profile_data.get("login") or "GitHub User",
+            "avatar_url": profile_data.get("avatar_url", ""),
+        }
+
+
 # ── User Management ────────────────────────────────────────
 async def get_or_create_user(google_info: dict) -> UserProfile:
     uid: str = google_info["sub"]
@@ -107,6 +170,7 @@ async def get_or_create_user(google_info: dict) -> UserProfile:
             email=google_info.get("email", ""),
             display_name=google_info.get("name", ""),
             photo_url=google_info.get("picture", ""),
+            google_id=uid,
         )
         await db_service.save_user(uid, profile.model_dump())
 

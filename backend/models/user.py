@@ -11,6 +11,8 @@ class UserProfile(BaseModel):
     photo_url: str = ""
     age: Optional[int] = None
     gender: Optional[str] = None
+    google_id: Optional[str] = None
+    github_id: Optional[str] = None
     native_language: Optional[str] = None
     learning_language: Optional[str] = None
     interests: List[str] = Field(default_factory=list)
@@ -50,6 +52,9 @@ from typing import Literal
 class GoogleAuthRequest(BaseModel):
     credential: str  # Google ID token (JWT)
     mode: Literal["login", "signup"] = "login"
+
+class GitHubAuthRequest(BaseModel):
+    code: str
 
 class EmailAuthRequest(BaseModel):
     email: str

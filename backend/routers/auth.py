@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models.user import (
     GoogleAuthRequest,
+    GitHubAuthRequest,
     EmailAuthRequest,
     UpgradeRequest,
     AuthResponse,
@@ -16,13 +17,14 @@ from models.user import (
     EmailRegisterRequest
 )
 from services.auth_service import (
-    verify_google_token, 
-    create_access_token, 
-    get_password_hash, 
+    verify_google_token,
+    get_github_user_info,
+    create_access_token,
+    get_password_hash,
     verify_password,
     decode_access_token,
     create_verification_token,
-    verify_verification_token
+    verify_verification_token,
 )
 from services.db_service import db_service
 from services.email_service import email_service
@@ -63,6 +65,7 @@ async def google_auth(body: GoogleAuthRequest):
             if existing_email_user:
                 user = UserProfile(**existing_email_user)
                 user.uid = uid
+                user.google_id = uid
                 user.photo_url = google_info.get("picture", user.photo_url)
                 await db_service.save_user(uid, user.model_dump())
                 await db_service.delete_user(email_uid)
@@ -72,6 +75,7 @@ async def google_auth(body: GoogleAuthRequest):
                 email=email,
                 display_name=google_info.get("name", display_name_from_email(email)),
                 photo_url=google_info.get("picture", ""),
+                google_id=uid,
             )
             await db_service.save_user(uid, user.model_dump())
 
@@ -242,6 +246,53 @@ async def email_register(body: EmailRegisterRequest):
     return AuthResponse(access_token=token, user=user)
 
 
+@router.post("/github", response_model=AuthResponse)
+async def github_auth(body: GitHubAuthRequest):
+    """Exchange a GitHub OAuth code for a signed-in session."""
+    try:
+        github_info = await get_github_user_info(body.code)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+    github_id = github_info["id"]
+    email = github_info["email"]
+
+    existing_by_id = await db_service.get_user_by_provider("github_id", github_id)
+    if existing_by_id:
+        user = UserProfile(**existing_by_id)
+    else:
+        email_uid = await db_service.get_uid_by_email(email)
+        if email_uid:
+            existing_email_user = await db_service.get_user(email_uid)
+            if existing_email_user:
+                user = UserProfile(**existing_email_user)
+                user.github_id = github_id
+                user.display_name = github_info.get("name", user.display_name)
+                user.photo_url = github_info.get("avatar_url", user.photo_url)
+                await db_service.save_user(user.uid, user.model_dump())
+            else:
+                user = UserProfile(
+                    uid=str(uuid.uuid4()),
+                    email=email,
+                    display_name=github_info.get("name", "GitHub User"),
+                    photo_url=github_info.get("avatar_url", ""),
+                    github_id=github_id,
+                )
+                await db_service.save_user(user.uid, user.model_dump())
+        else:
+            user = UserProfile(
+                uid=str(uuid.uuid4()),
+                email=email,
+                display_name=github_info.get("name", "GitHub User"),
+                photo_url=github_info.get("avatar_url", ""),
+                github_id=github_id,
+            )
+            await db_service.save_user(user.uid, user.model_dump())
+
+    token = create_access_token(user.uid)
+    return AuthResponse(access_token=token, user=user)
+
+
 @router.post("/login", response_model=AuthResponse)
 async def email_login(body: EmailAuthRequest):
     """Login with email and password. Rejects unregistered emails."""
@@ -358,6 +409,7 @@ async def upgrade_guest(
             photo_url=google_info.get("picture", guest_profile.photo_url),
             age=guest_profile.age,
             gender=guest_profile.gender,
+            google_id=target_uid,
             native_language=guest_profile.native_language,
             learning_language=guest_profile.learning_language,
             interests=guest_profile.interests,
