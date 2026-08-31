@@ -60,14 +60,16 @@ const STEPS = [
 export default function LandingPage() {
   const { profile, setAuth } = useAuth();
   const router = useRouter();
-  const [onlineCount, setOnlineCount] = useState(0);
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
     getOnlineCount()
-      .then(({ online }) => setOnlineCount(online + 34))
-      .catch(() => setOnlineCount(240));
+      .then(({ online }) => setOnlineCount(Math.max(online, 0)))
+      .catch(() => setOnlineCount(null));
   }, []);
+
+  const liveStatusText = onlineCount !== null ? `${onlineCount}+ people practicing right now` : "People practicing right now";
 
   const handleStart = async () => {
     if (profile) {
@@ -113,7 +115,7 @@ export default function LandingPage() {
         <div className="hero-copy">
           <div className="live-pill">
             <span className="live-dot" />
-            <span>{onlineCount}+ people practicing right now</span>
+            <span>{liveStatusText}</span>
           </div>
 
           <h1>
