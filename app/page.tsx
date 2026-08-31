@@ -105,10 +105,6 @@ export default function LandingPage() {
           <Link href="#process">How it works</Link>
           <Link href="#join">Join</Link>
         </nav>
-
-        <button className="pill-button secondary" onClick={() => router.push("/auth")}>
-          Sign in
-        </button>
       </header>
 
       <section className="hero-panel">
